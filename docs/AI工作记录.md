@@ -99,6 +99,14 @@
 - `docs/TODO.md` - 更新测试文档解析功能状态为已完成
 **备注**：完成了文件解析和分块功能的测试，验证了解析成功率>90%
 
+### 2026-03-03 16:40:00
+**操作内容**：更新AI工作规则，添加忽略文件检查
+**修改文件**：
+- `.gitignore` - 添加对.trae/skills/和uploads/目录的忽略，排除.trae/rules/目录
+- `.trae/rules/ai.md` - 更新Git提交和忽略文件检查规则
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DocumentParserService.java` - 修复PDF解析功能
+**备注**：更新了AI工作规则，确保提交时参考更改文件，同时添加了必要的忽略文件规则
+
 ## 后续工作
 
 1. 集成Dify平台进行RAG检索增强
