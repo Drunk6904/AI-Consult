@@ -31,6 +31,12 @@
 - `.gitignore` - 完善忽略规则
 **备注**：初始化了本地Git仓库，配置了远程仓库地址为 `https://github.com/Drunk6904/AI-Consult.git`，由于网络原因暂时无法推送
 
+### 2026-03-03 15:07:00
+**操作内容**：修复CORS配置问题
+**修改文件**：
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/CorsConfig.java` - 将allowedOrigins改为allowedOriginPatterns
+**备注**：解决了前端访问后端时出现的500错误，现在健康检查接口可以正常响应
+
 ## 后续工作
 
 1. 实现知识库基础搭建功能
