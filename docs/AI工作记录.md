@@ -64,10 +64,17 @@
 - `docs/TODO.md` - 更新任务状态为已完成
 **备注**：创建了feature/mvp-001开发分支，实现了POST /api/v1/knowledge/upload接口，支持PDF、Word、Excel格式文件上传
 
+### 2026-03-03 15:50:00
+**操作内容**：完成任务3和任务4，创建DocumentParserService服务并实现文本分块逻辑
+**修改文件**：
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DocumentParserService.java` - 实现文档解析和文本分块功能
+- `docs/TODO.md` - 更新任务3和任务4状态为已完成
+**备注**：实现了PDF、Word、Excel格式文件解析，以及基于段落和句子的智能分块算法
+
 ## 后续工作
 
-1. 创建DocumentParserService服务
-2. 实现文本分块逻辑
+1. 前端文件上传组件
+2. 前端上传进度显示
 3. 集成Dify平台进行RAG检索增强
-4. 完善前端界面和交互
+4. 测试文档解析功能
 5. 配置Docker容器化部署
