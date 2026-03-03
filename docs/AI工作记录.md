@@ -87,6 +87,12 @@
 - `ai_consult_frontend/vite.config.js` - 恢复代理配置
 **备注**：将文件上传大小限制设置为100MB，修复了上传失败的问题
 
+### 2026-03-03 16:37:00
+**操作内容**：添加文件解析和分块功能
+**修改文件**：
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java` - 集成DocumentParserService，添加文件解析和分块逻辑
+**备注**：在文件上传成功后自动解析文件内容并进行分块处理，返回解析结果和分块数量
+
 ## 后续工作
 
 1. 集成Dify平台进行RAG检索增强

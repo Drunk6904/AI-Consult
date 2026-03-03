@@ -9,11 +9,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.zhuofeng.ai_consult_backend.service.DocumentParserService;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -22,8 +26,10 @@ import java.util.Map;
 public class KnowledgeController {
 
     private static final String UPLOAD_DIR = "uploads";
+    private final DocumentParserService documentParserService;
 
-    public KnowledgeController() {
+    public KnowledgeController(DocumentParserService documentParserService) {
+        this.documentParserService = documentParserService;
         // 创建上传目录
         Path uploadPath = Paths.get(UPLOAD_DIR);
         if (!Files.exists(uploadPath)) {
@@ -62,6 +68,22 @@ public class KnowledgeController {
             // 保存文件
             Path filePath = Paths.get(UPLOAD_DIR, fileName);
             file.transferTo(filePath);
+
+            // 解析文件
+            try {
+                String content = documentParserService.parseDocument(filePath.toString());
+                log.info("Document parsed successfully, content length: {}", content.length());
+
+                // 分块处理
+                List<String> chunks = documentParserService.chunkText(content, 1000);
+                log.info("Text chunked successfully, chunk count: {}", chunks.size());
+
+                response.put("contentLength", content.length());
+                response.put("chunkCount", chunks.size());
+            } catch (Exception e) {
+                log.error("Failed to parse document", e);
+                response.put("parseError", e.getMessage());
+            }
 
             // 构建响应
             response.put("success", true);
