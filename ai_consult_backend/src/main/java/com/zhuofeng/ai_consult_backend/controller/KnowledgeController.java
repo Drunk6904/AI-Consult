@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.zhuofeng.ai_consult_backend.service.DocumentParserService;
+import com.zhuofeng.ai_consult_backend.service.DifyService;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,9 +28,11 @@ public class KnowledgeController {
 
     private static final String UPLOAD_DIR = "uploads";
     private final DocumentParserService documentParserService;
+    private final DifyService difyService;
 
-    public KnowledgeController(DocumentParserService documentParserService) {
+    public KnowledgeController(DocumentParserService documentParserService, DifyService difyService) {
         this.documentParserService = documentParserService;
+        this.difyService = difyService;
         // 创建上传目录
         Path uploadPath = Paths.get(UPLOAD_DIR);
         if (!Files.exists(uploadPath)) {
@@ -83,6 +86,16 @@ public class KnowledgeController {
             } catch (Exception e) {
                 log.error("Failed to parse document", e);
                 response.put("parseError", e.getMessage());
+            }
+
+            // 上传到Dify知识库
+            try {
+                String documentId = difyService.uploadDocument(filePath.toFile(), fileName).block();
+                log.info("File uploaded to Dify successfully, document ID: {}", documentId);
+                response.put("difyDocumentId", documentId);
+            } catch (Exception e) {
+                log.error("Failed to upload to Dify", e);
+                response.put("difyError", e.getMessage());
             }
 
             // 构建响应
