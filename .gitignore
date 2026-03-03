@@ -72,6 +72,7 @@ ehthumbs.db
 
 ### Trae IDE ###
 .trae/
+!.trae/rules/
 
 ### Uploads ###
 **/uploads/
