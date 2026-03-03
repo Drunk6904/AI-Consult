@@ -49,9 +49,18 @@
 - `.trae/rules/ai.md` - 创建AI工作规则规范
 **备注**：定义了AI的工作流程、操作规范和提交规范
 
+### 2026-03-03 15:30:00
+**操作内容**：添加文档解析相关依赖到pom.xml
+**修改文件**：
+- `ai_consult_backend/pom.xml` - 添加PDFBox和POI依赖
+- `docs/TODO.md` - 更新任务状态为已完成
+- `.trae/rules/ai.md` - 更新提交规范
+**备注**：添加了PDFBox 3.0.2和POI 5.2.5相关依赖，用于处理PDF、Excel和Word文件
+
 ## 后续工作
 
-1. 实现知识库基础搭建功能
-2. 集成Dify平台进行RAG检索增强
-3. 完善前端界面和交互
-4. 配置Docker容器化部署
+1. 实现文件上传接口
+2. 创建DocumentParserService服务
+3. 集成Dify平台进行RAG检索增强
+4. 完善前端界面和交互
+5. 配置Docker容器化部署
