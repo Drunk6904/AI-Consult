@@ -69,3 +69,9 @@ Thumbs.db
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+### Trae IDE ###
+.trae/
+
+### Uploads ###
+**/uploads/
