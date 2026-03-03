@@ -79,6 +79,14 @@
 - `docs/TODO.md` - 更新任务5和任务6状态为已完成
 **备注**：实现了前端文件上传组件，支持PDF、Word、Excel格式文件选择，以及上传进度显示和上传历史记录
 
+### 2026-03-03 16:28:00
+**操作内容**：修复文件上传大小限制问题
+**修改文件**：
+- `ai_consult_backend/src/main/resources/application.properties` - 添加文件上传大小限制配置
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java` - 修改路由配置
+- `ai_consult_frontend/vite.config.js` - 恢复代理配置
+**备注**：将文件上传大小限制设置为100MB，修复了上传失败的问题
+
 ## 后续工作
 
 1. 集成Dify平台进行RAG检索增强
