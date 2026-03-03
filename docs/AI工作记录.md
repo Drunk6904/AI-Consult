@@ -37,6 +37,12 @@
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/CorsConfig.java` - 将allowedOrigins改为allowedOriginPatterns
 **备注**：解决了前端访问后端时出现的500错误，现在健康检查接口可以正常响应
 
+### 2026-03-03 15:15:00
+**操作内容**：创建MVP开发计划TODO文档
+**修改文件**：
+- `docs/TODO.md` - 创建MVP开发计划文档
+**备注**：记录了MVP-001知识库基础搭建的详细任务计划
+
 ## 后续工作
 
 1. 实现知识库基础搭建功能
