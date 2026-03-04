@@ -23,7 +23,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/v1/knowledge")
+@RequestMapping("/api/v1/knowledge")
 public class KnowledgeController {
 
     private static final String UPLOAD_DIR = "uploads";

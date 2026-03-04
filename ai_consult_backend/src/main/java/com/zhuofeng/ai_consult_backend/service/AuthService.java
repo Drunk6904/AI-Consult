@@ -5,8 +5,6 @@ import com.zhuofeng.ai_consult_backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 public class AuthService {
     private final UserRepository userRepository;
@@ -18,10 +16,10 @@ public class AuthService {
     }
 
     public User register(String username, String email, String password) {
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -34,24 +32,13 @@ public class AuthService {
     }
 
     public User login(String username, String password) {
-        Optional<User> userOptional = userRepository.findByUsername(username);
-        if (userOptional.isEmpty()) {
-            throw new RuntimeException("Invalid username or password");
-        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
 
-        User user = userOptional.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid username or password");
         }
 
         return user;
-    }
-
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
-
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
     }
 }

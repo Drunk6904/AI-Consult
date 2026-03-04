@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/v1/chat")
+@RequestMapping("/api/v1/chat")
 public class ChatController {
     private final DifyService difyService;
 

@@ -89,12 +89,25 @@
 10. **合并MVP-003到MVP-001分支**：将Web聊天窗口和用户认证功能合并到主MVP分支
 11. **解决合并冲突**：解决pom.xml和SecurityConfig.java的合并冲突
 12. **完成分支合并**：成功将所有功能合并到feature/mvp-001分支
+13. **修复DifyService编译错误**：修复WebClient.baseUrl()方法不存在和类型转换错误
+14. **恢复用户注册功能**：添加JPA和H2数据库依赖，恢复认证相关代码
+15. **统一API路径**：为所有控制器添加/api前缀，确保前端请求能正确映射
+16. **修复前端代理配置**：移除rewrite规则，确保API请求正确代理到后端
+17. **更新AI工作规则**：完善工作流程和操作规范
 
 ### 修改文件
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：修复健康检查接口权限
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：修复JWT实现
-- `ai_consult_frontend/vite.config.js`：完善前端代理配置
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：修复语法错误
+- `ai_consult_frontend/vite.config.js`：完善前端代理配置，移除rewrite规则
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：修复语法错误，恢复认证功能
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/HealthController.java`：添加/api前缀
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`：添加/api前缀
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java`：添加/api前缀
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：恢复认证服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：修复编译错误
+- `ai_consult_backend/pom.xml`：添加JPA和H2数据库依赖
+- `ai_consult_frontend/src/components/ChatWindow.vue`：修正API请求路径
+- `.trae/rules/ai.md`：更新AI工作规则
 - `docs/TODO.md`：更新任务状态
 - `docs/AI工作记录.md`：更新工作记录
 
