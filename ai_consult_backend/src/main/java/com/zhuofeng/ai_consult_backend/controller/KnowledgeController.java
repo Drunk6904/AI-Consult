@@ -90,12 +90,17 @@ public class KnowledgeController {
 
             // 上传到Dify知识库
             try {
+                log.info("Attempting to upload file to Dify: {}", fileName);
                 String documentId = difyService.uploadDocument(filePath.toFile(), fileName).block();
                 log.info("File uploaded to Dify successfully, document ID: {}", documentId);
                 response.put("difyDocumentId", documentId);
+                response.put("difyStatus", "success");
             } catch (Exception e) {
                 log.error("Failed to upload to Dify", e);
                 response.put("difyError", e.getMessage());
+                response.put("difyStatus", "failed");
+                // 即使Dify上传失败，也继续返回成功，因为文件已经成功保存到本地
+                log.info("File saved locally even though Dify upload failed");
             }
 
             // 构建响应

@@ -94,6 +94,16 @@
 15. **统一API路径**：为所有控制器添加/api前缀，确保前端请求能正确映射
 16. **修复前端代理配置**：移除rewrite规则，确保API请求正确代理到后端
 17. **更新AI工作规则**：完善工作流程和操作规范
+18. **修复DifyService.java编译错误**：修复文件中的语法错误和不完整方法
+19. **启动后端服务**：解决端口冲突，成功启动后端服务
+20. **启动前端服务**：成功启动前端开发服务器
+21. **验证应用运行状态**：确保前端应用正常加载
+22. **修复Dify API配置**：更新DifyService构造函数，直接使用配置中提供的URL
+23. **更新application.properties**：将Dify API URL修改为http://localhost/v1，与Dify的实际API端点匹配
+24. **重启后端服务**：应用Dify API配置更改
+25. **修复DifyService.java编译错误**：修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型
+26. **修复chat方法截断问题**：重新完整写入chat方法，确保语法正确
+27. **重启后端服务**：应用DifyService.java修复
 
 ### 修改文件
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：修复健康检查接口权限
@@ -104,7 +114,8 @@
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`：添加/api前缀
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java`：添加/api前缀
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：恢复认证服务
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：修复编译错误
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：修复编译错误和语法问题，更新构造函数以直接使用配置中提供的URL，修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型，修复chat方法截断问题
+- `ai_consult_backend/src/main/resources/application.properties`：更新Dify API URL为http://localhost/v1
 - `ai_consult_backend/pom.xml`：添加JPA和H2数据库依赖
 - `ai_consult_frontend/src/components/ChatWindow.vue`：修正API请求路径
 - `.trae/rules/ai.md`：更新AI工作规则
