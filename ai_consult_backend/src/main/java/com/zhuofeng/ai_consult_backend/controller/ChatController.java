@@ -44,8 +44,19 @@ public class ChatController {
             Map<String, Object> chatResponse = difyService.chat(query, userId).block();
             log.info("Chat response received: {}", chatResponse);
 
+            // 构建标准响应格式
+            Map<String, Object> data = new HashMap<>();
+            if (chatResponse != null) {
+                // 从Dify响应中提取信息
+                data.put("answer", chatResponse.get("answer"));
+                data.put("message", chatResponse.get("message"));
+                data.put("sources", chatResponse.get("sources"));
+                data.put("confidence", chatResponse.get("confidence"));
+                data.put("session_id", request.get("session_id"));
+            }
+
             response.put("success", true);
-            response.put("data", chatResponse);
+            response.put("data", data);
 
             return ResponseEntity.ok(response);
 

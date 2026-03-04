@@ -1,0 +1,9 @@
+{
+  "model": {
+    "model_name": "Qwen3-1.7B",
+    "model_type": "llm",
+    "parameters": {
+      "model_path": "Qwen/Qwen3-1.7B"
+    }
+  }
+}

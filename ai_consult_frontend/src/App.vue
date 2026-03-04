@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import FileUpload from './components/FileUpload.vue'
+import ChatWindow from './components/ChatWindow.vue'
+import AuthComponent from './components/AuthComponent.vue'
 
 const healthStatus = ref(null)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const uploadHistory = ref([])
+const user = ref(null)
 
 const checkHealth = async () => {
   isLoading.value = true
@@ -38,8 +41,23 @@ const handleUploadError = (error) => {
   console.error('上传失败:', error)
 }
 
+const handleLoginSuccess = (userData) => {
+  user.value = userData
+}
+
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  user.value = null
+}
+
 onMounted(() => {
   checkHealth()
+  // 检查本地存储中的用户信息
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    user.value = JSON.parse(storedUser)
+  }
 })
 </script>
 
@@ -47,8 +65,19 @@ onMounted(() => {
   <div class="container">
     <h1>AI智能客服系统</h1>
     
+    <!-- 用户认证 -->
+    <section class="auth-section">
+      <div v-if="user" class="user-info">
+        <span>欢迎, {{ user.username }}</span>
+        <button @click="handleLogout" class="logout-btn">退出登录</button>
+      </div>
+      <div v-else>
+        <AuthComponent @login-success="handleLoginSuccess" />
+      </div>
+    </section>
+    
     <!-- 健康检查 -->
-    <section class="health-check">
+    <section class="health-check" v-if="user">
       <h2>系统状态</h2>
       <button @click="checkHealth" :disabled="isLoading">
         {{ isLoading ? '检查中...' : '检查健康状态' }}
@@ -68,7 +97,7 @@ onMounted(() => {
     </section>
     
     <!-- 文件上传 -->
-    <section class="file-upload-section">
+    <section class="file-upload-section" v-if="user">
       <FileUpload 
         @upload-success="handleUploadSuccess"
         @upload-error="handleUploadError"
@@ -76,7 +105,7 @@ onMounted(() => {
     </section>
     
     <!-- 上传历史 -->
-    <section v-if="uploadHistory.length > 0" class="upload-history">
+    <section v-if="user && uploadHistory.length > 0" class="upload-history">
       <h2>上传历史</h2>
       <div class="history-list">
         <div v-for="item in uploadHistory" :key="item.id" class="history-item">
@@ -89,6 +118,9 @@ onMounted(() => {
         </div>
       </div>
     </section>
+    
+    <!-- 聊天窗口 -->
+    <ChatWindow v-if="user" />
   </div>
 </template>
 
@@ -195,5 +227,42 @@ button:disabled {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
+}
+
+.auth-section {
+  margin-bottom: 2rem;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-info span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.logout-btn:hover {
+  background-color: #d32f2f;
 }
 </style>

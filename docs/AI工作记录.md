@@ -1,5 +1,56 @@
 # AI工作记录
 
+## 2026-03-04
+
+### 操作内容
+1. **提交MVP-001代码**：将MVP-001相关的代码更改提交到feature/mvp-001分支
+2. **创建MVP-003分支**：创建新的分支feature/mvp-003用于开发Web聊天窗口功能
+3. **更新TODO.md**：添加MVP-003 Web聊天窗口的任务列表和验收标准
+4. **创建ChatWindow组件**：实现了前端聊天窗口组件，包括消息发送/接收、历史记录显示、Markdown支持等功能
+5. **集成ChatWindow组件**：在App.vue中引入并使用ChatWindow组件
+6. **测试前端项目**：启动前端开发服务器，确保ChatWindow组件能正常加载
+7. **集成后端API**：修改ChatWindow组件，实现与后端API的集成
+8. **优化ChatController**：修改后端ChatController，提供标准的响应格式
+9. **添加加载状态**：在聊天窗口中添加加载状态显示
+10. **重启后端服务**：应用ChatController的更改
+11. **更新任务状态**：更新TODO.md中MVP-003的任务状态
+12. **创建MVP-004分支**：创建新的分支feature/mvp-004用于开发用户注册/登录功能
+13. **添加Spring Security依赖**：在后端pom.xml中添加Spring Security和JWT相关依赖
+14. **实现用户实体类**：创建User实体类，包含id、username、email、password等字段
+15. **实现UserRepository**：创建UserRepository接口，提供用户相关的数据库操作
+16. **实现AuthService**：创建AuthService类，实现用户注册和登录的业务逻辑
+17. **实现JwtService**：创建JwtService类，实现JWT令牌的生成和验证
+18. **实现AuthController**：创建AuthController类，提供用户注册和登录的HTTP接口
+19. **配置Spring Security**：创建SecurityConfig类，配置Spring Security和密码编码器
+20. **创建AuthComponent**：创建前端AuthComponent组件，实现用户注册和登录界面
+21. **集成前端认证**：更新App.vue，集成AuthComponent组件，实现前端认证状态管理
+22. **更新TODO.md**：添加MVP-004用户注册/登录的任务列表和验收标准
+23. **修复健康检查接口403错误**：修改SecurityConfig，添加对/health和/api/health路径的支持
+24. **更新JWT实现**：重新实现JwtService，使用简化的JWT生成和解析逻辑
+25. **完善前端代理配置**：修改vite.config.js，添加rewrite规则，确保前端API调用正确代理到后端
+26. **提交代码更改**：将所有修改提交到feature/mvp-004分支
+
+### 修改文件
+- `docs/TODO.md`：添加MVP-003和MVP-004任务列表
+- `ai_consult_frontend/src/components/ChatWindow.vue`：创建聊天窗口组件
+- `ai_consult_frontend/src/App.vue`：集成ChatWindow组件和AuthComponent组件
+- `ai_consult_frontend/src/components/AuthComponent.vue`：创建用户认证组件
+- `ai_consult_frontend/vite.config.js`：添加前端代理rewrite规则
+- `ai_consult_backend/pom.xml`：添加Spring Security和JWT相关依赖
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/model/User.java`：创建用户实体类
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/repository/UserRepository.java`：创建用户Repository
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：创建认证服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：创建并更新JWT服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：创建并修复认证控制器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：配置Spring Security，添加健康检查接口支持
+
+### 备注
+- 聊天窗口组件实现了悬浮窗式设计，支持响应式布局
+- 目前使用模拟数据，后续会对接后端API
+- 前端开发服务器已启动，可通过http://localhost:5173/访问
+- 用户注册/登录功能已实现完整的前后端代码，包括Spring Security配置、JWT令牌生成和验证、前端认证状态管理
+- 由于环境权限问题，后端服务启动时遇到依赖下载失败的问题，但代码实现已完成
+
 ## 2026-03-03
 
 ### 操作内容
