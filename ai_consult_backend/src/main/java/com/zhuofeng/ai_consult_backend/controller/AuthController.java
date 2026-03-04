@@ -33,9 +33,10 @@ public class AuthController {
             if (username == null || email == null || password == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Missing required fields"));
             }
-                    
-                     user = authService.register(us
-                    rn ResponseEntity.status    "id", user.getId(),
+
+            User user = authService.register(username, email, password);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail()
             ));
@@ -57,13 +58,11 @@ public class AuthController {
             User user = authService.login(username, password);
             String token = jwtService.generateToken(user.getUsername());
 
-            return ResponseEntity.ok(Map.of(
-                "token", token,
-                "user", Map.of(
-                    "id", user.getId(),
-                    "username", user.getUsername(),
-                    "email", user.getEmail()
-                )
+                    rn ResponseEnti
+                    "token", token,
+                            r", Map.of(
+                            "id", user.getId(),
+                            "username", user.getUser     )
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

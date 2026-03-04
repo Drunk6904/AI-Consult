@@ -76,7 +76,7 @@ export default {
       this.error = ''
       
       try {
-        const url = this.isRegister ? 'http://localhost:8080/api/v1/auth/register' : 'http://localhost:8080/api/v1/auth/login'
+        const url = this.isRegister ? '/api/v1/auth/register' : '/api/v1/auth/login'
         
         const response = await fetch(url, {
           method: 'POST',
