@@ -14,16 +14,37 @@
 9. **添加加载状态**：在聊天窗口中添加加载状态显示
 10. **重启后端服务**：应用ChatController的更改
 11. **更新任务状态**：更新TODO.md中MVP-003的任务状态
+12. **创建MVP-004分支**：创建新的分支feature/mvp-004用于开发用户注册/登录功能
+13. **添加Spring Security依赖**：在后端pom.xml中添加Spring Security和JWT相关依赖
+14. **实现用户实体类**：创建User实体类，包含id、username、email、password等字段
+15. **实现UserRepository**：创建UserRepository接口，提供用户相关的数据库操作
+16. **实现AuthService**：创建AuthService类，实现用户注册和登录的业务逻辑
+17. **实现JwtService**：创建JwtService类，实现JWT令牌的生成和验证
+18. **实现AuthController**：创建AuthController类，提供用户注册和登录的HTTP接口
+19. **配置Spring Security**：创建SecurityConfig类，配置Spring Security和密码编码器
+20. **创建AuthComponent**：创建前端AuthComponent组件，实现用户注册和登录界面
+21. **集成前端认证**：更新App.vue，集成AuthComponent组件，实现前端认证状态管理
+22. **更新TODO.md**：添加MVP-004用户注册/登录的任务列表和验收标准
 
 ### 修改文件
-- `docs/TODO.md`：添加MVP-003任务列表
+- `docs/TODO.md`：添加MVP-003和MVP-004任务列表
 - `ai_consult_frontend/src/components/ChatWindow.vue`：创建聊天窗口组件
-- `ai_consult_frontend/src/App.vue`：集成ChatWindow组件
+- `ai_consult_frontend/src/App.vue`：集成ChatWindow组件和AuthComponent组件
+- `ai_consult_frontend/src/components/AuthComponent.vue`：创建用户认证组件
+- `ai_consult_backend/pom.xml`：添加Spring Security和JWT相关依赖
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/model/User.java`：创建用户实体类
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/repository/UserRepository.java`：创建用户Repository
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：创建认证服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：创建JWT服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：创建认证控制器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：配置Spring Security
 
 ### 备注
 - 聊天窗口组件实现了悬浮窗式设计，支持响应式布局
 - 目前使用模拟数据，后续会对接后端API
 - 前端开发服务器已启动，可通过http://localhost:5173/访问
+- 用户注册/登录功能已实现完整的前后端代码，包括Spring Security配置、JWT令牌生成和验证、前端认证状态管理
+- 由于环境权限问题，后端服务启动时遇到依赖下载失败的问题，但代码实现已完成
 
 ## 2026-03-03
 
