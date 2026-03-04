@@ -86,10 +86,19 @@ export default {
           body: JSON.stringify(this.formData)
         })
         
-        const data = await response.json()
-        
         if (!response.ok) {
-          throw new Error(data.error || '操作失败')
+          throw new Error('服务暂时不可用，请稍后重试')
+        }
+        
+        let data
+        try {
+          data = await response.json()
+        } catch (jsonError) {
+          throw new Error('服务返回的数据格式错误')
+        }
+        
+        if (data.error) {
+          throw new Error(data.error)
         }
         
         if (!this.isRegister) {

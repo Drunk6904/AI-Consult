@@ -36,9 +36,9 @@ public class AuthController {
 
             User user = authService.register(username, email, password);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail()
+                    "id", user.getId(),
+                    "username", user.getUsername(),
+                    "email", user.getEmail()
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -58,11 +58,13 @@ public class AuthController {
             User user = authService.login(username, password);
             String token = jwtService.generateToken(user.getUsername());
 
-                    rn ResponseEnti
+            return ResponseEntity.ok(Map.of(
                     "token", token,
-                            r", Map.of(
+                    "user", Map.of(
                             "id", user.getId(),
-                            "username", user.getUser     )
+                            "username", user.getUsername(),
+                            "email", user.getEmail()
+                    )
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

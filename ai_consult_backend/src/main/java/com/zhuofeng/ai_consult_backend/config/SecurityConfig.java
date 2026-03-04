@@ -16,16 +16,18 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
+@Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/health").permitAll()
-                .requestMatchers("/api/v1/knowledge/**").permitAll()
-                .requestMatchers("/api/v1/chat/**").permitAll()
-                .anyRequest().authenticated()
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/health").permitAll()
+                        .requestMatchers("/health").permitAll()
+                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/api/v1/knowledge/**").permitAll()
+                        .requestMatchers("/api/v1/chat/**").permitAll()
+                        .anyRequest().authenticated()
             );
 
         return http.build();
