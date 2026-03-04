@@ -36,7 +36,7 @@ public class DifyService {
          */
         public Mono<String> uploadDocument(File file, String fileName) {
                 return webClient.post()
-                                .uri("/knowledge_bases/" + knowledgeBaseId + "/documents")
+                                .uri("/datasets/" + knowledgeBaseId + "/documents")
                                 .contentType(MediaType.MULTIPART_FORM_DATA)
                                 .body(BodyInserters.fromMultipartData("file",
                                                 new FileSystemResource(file)))
@@ -53,7 +53,7 @@ public class DifyService {
          */
         public Mono<Boolean> deleteDocument(String documentId) {
                 return webClient.delete()
-                                .uri("/knowledge_bases/" + knowledgeBaseId + "/documents/" + documentId)
+                                .uri("/datasets/" + knowledgeBaseId + "/documents/" + documentId)
                                 .retrieve()
                                 .bodyToMono(Map.class)
                                 .map(response -> response != null ? (Boolean) response.get("success") : false);
@@ -66,7 +66,7 @@ public class DifyService {
          */
         public Mono<Map<String, Object>> listDocuments() {
                 return webClient.get()
-                                .uri("/knowledge_bases/" + knowledgeBaseId + "/documents")
+                                .uri("/datasets/" + knowledgeBaseId + "/documents")
                                 .retrieve()
                                 .bodyToMono(Map.class)
                                 .map(response -> response != null ? response : new HashMap<>());
