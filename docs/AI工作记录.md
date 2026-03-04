@@ -25,19 +25,24 @@
 20. **创建AuthComponent**：创建前端AuthComponent组件，实现用户注册和登录界面
 21. **集成前端认证**：更新App.vue，集成AuthComponent组件，实现前端认证状态管理
 22. **更新TODO.md**：添加MVP-004用户注册/登录的任务列表和验收标准
+23. **修复健康检查接口403错误**：修改SecurityConfig，添加对/health和/api/health路径的支持
+24. **更新JWT实现**：重新实现JwtService，使用简化的JWT生成和解析逻辑
+25. **完善前端代理配置**：修改vite.config.js，添加rewrite规则，确保前端API调用正确代理到后端
+26. **提交代码更改**：将所有修改提交到feature/mvp-004分支
 
 ### 修改文件
 - `docs/TODO.md`：添加MVP-003和MVP-004任务列表
 - `ai_consult_frontend/src/components/ChatWindow.vue`：创建聊天窗口组件
 - `ai_consult_frontend/src/App.vue`：集成ChatWindow组件和AuthComponent组件
 - `ai_consult_frontend/src/components/AuthComponent.vue`：创建用户认证组件
+- `ai_consult_frontend/vite.config.js`：添加前端代理rewrite规则
 - `ai_consult_backend/pom.xml`：添加Spring Security和JWT相关依赖
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/model/User.java`：创建用户实体类
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/repository/UserRepository.java`：创建用户Repository
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：创建认证服务
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：创建JWT服务
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：创建认证控制器
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：配置Spring Security
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：创建并更新JWT服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：创建并修复认证控制器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：配置Spring Security，添加健康检查接口支持
 
 ### 备注
 - 聊天窗口组件实现了悬浮窗式设计，支持响应式布局
