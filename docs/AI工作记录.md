@@ -86,6 +86,9 @@
 7. **恢复MVP-003分支文件**：恢复被误删的文件，确保所有功能正常
 8. **集成Dify平台**：配置Dify API密钥和知识库ID，实现文件上传到Dify知识库
 9. **更新文档**：更新TODO.md和AI工作记录.md
+10. **合并MVP-003到MVP-001分支**：将Web聊天窗口和用户认证功能合并到主MVP分支
+11. **解决合并冲突**：解决pom.xml和SecurityConfig.java的合并冲突
+12. **完成分支合并**：成功将所有功能合并到feature/mvp-001分支
 
 ### 修改文件
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：修复健康检查接口权限
