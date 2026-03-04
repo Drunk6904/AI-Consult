@@ -34,7 +34,15 @@
                 {{ source.doc_name }} (第{{ source.page }}页)
               </div>
             </div>
+            <div v-if="message.confidence" class="chat-window__message__confidence">
+              置信度: {{ Math.round(message.confidence * 100) }}%
+            </div>
           </div>
+        </div>
+        <!-- 加载状态 -->
+        <div v-if="isLoading" class="chat-window__loading">
+          <div class="chat-window__loading__spinner"></div>
+          <span>AI正在思考...</span>
         </div>
       </div>
 
@@ -74,10 +82,19 @@ export default {
         }
       ],
       unreadCount: 0,
-      sessionId: null
+      sessionId: null,
+      isLoading: false,
+      error: null
     }
   },
+  mounted() {
+    // 生成会话ID
+    this.sessionId = this.generateSessionId()
+  },
   methods: {
+    generateSessionId() {
+      return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    },
     toggleChat() {
       this.isOpen = !this.isOpen
       if (this.isOpen) {
@@ -85,7 +102,7 @@ export default {
         this.scrollToBottom()
       }
     },
-    sendMessage() {
+    async sendMessage() {
       if (!this.inputMessage.trim()) return
 
       // 添加用户消息
@@ -97,21 +114,56 @@ export default {
       this.inputMessage = ''
       this.scrollToBottom()
 
-      // 模拟AI回复
-      setTimeout(() => {
-        const aiMessage = {
-          role: 'assistant',
-          content: '这是一个模拟的AI回复，实际项目中会调用后端API获取真实回答。',
-          sources: [
-            {
-              doc_name: '产品手册.pdf',
-              page: 10
-            }
-          ]
+      // 调用后端API
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const response = await fetch('/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: userMessage.content,
+            user: 'anonymous', // 后续可从登录状态获取
+            session_id: this.sessionId
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-        this.messages.push(aiMessage)
+
+        const data = await response.json()
+        
+        if (data.success) {
+          // 处理API响应
+          const chatData = data.data
+          const aiMessage = {
+            role: 'assistant',
+            content: chatData.answer || chatData.message || '抱歉，我无法回答这个问题。',
+            sources: chatData.sources || [],
+            confidence: chatData.confidence
+          }
+          this.messages.push(aiMessage)
+        } else {
+          throw new Error(data.message || 'API调用失败')
+        }
+      } catch (error) {
+        console.error('发送消息失败:', error)
+        this.error = error.message
+        // 添加错误提示消息
+        const errorMessage = {
+          role: 'assistant',
+          content: '抱歉，暂时无法处理您的请求，请稍后再试。',
+          sources: []
+        }
+        this.messages.push(errorMessage)
+      } finally {
+        this.isLoading = false
         this.scrollToBottom()
-      }, 1000)
+      }
     },
     scrollToBottom() {
       setTimeout(() => {
@@ -263,6 +315,37 @@ export default {
 .chat-window__message__sources__item {
   margin-left: 12px;
   list-style: disc;
+}
+
+.chat-window__message__confidence {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.chat-window__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  color: #666;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.chat-window__loading__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #4a90e2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .chat-window__input-area {

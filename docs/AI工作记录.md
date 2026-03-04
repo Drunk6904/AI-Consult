@@ -9,6 +9,11 @@
 4. **创建ChatWindow组件**：实现了前端聊天窗口组件，包括消息发送/接收、历史记录显示、Markdown支持等功能
 5. **集成ChatWindow组件**：在App.vue中引入并使用ChatWindow组件
 6. **测试前端项目**：启动前端开发服务器，确保ChatWindow组件能正常加载
+7. **集成后端API**：修改ChatWindow组件，实现与后端API的集成
+8. **优化ChatController**：修改后端ChatController，提供标准的响应格式
+9. **添加加载状态**：在聊天窗口中添加加载状态显示
+10. **重启后端服务**：应用ChatController的更改
+11. **更新任务状态**：更新TODO.md中MVP-003的任务状态
 
 ### 修改文件
 - `docs/TODO.md`：添加MVP-003任务列表
