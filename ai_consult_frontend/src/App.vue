@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import FileUpload from './components/FileUpload.vue'
+import ChatWindow from './components/ChatWindow.vue'
 
 const healthStatus = ref(null)
 const errorMessage = ref('')
@@ -89,6 +90,9 @@ onMounted(() => {
         </div>
       </div>
     </section>
+    
+    <!-- 聊天窗口 -->
+    <ChatWindow />
   </div>
 </template>
 

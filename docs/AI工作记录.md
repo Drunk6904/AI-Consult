@@ -1,5 +1,25 @@
 # AI工作记录
 
+## 2026-03-04
+
+### 操作内容
+1. **提交MVP-001代码**：将MVP-001相关的代码更改提交到feature/mvp-001分支
+2. **创建MVP-003分支**：创建新的分支feature/mvp-003用于开发Web聊天窗口功能
+3. **更新TODO.md**：添加MVP-003 Web聊天窗口的任务列表和验收标准
+4. **创建ChatWindow组件**：实现了前端聊天窗口组件，包括消息发送/接收、历史记录显示、Markdown支持等功能
+5. **集成ChatWindow组件**：在App.vue中引入并使用ChatWindow组件
+6. **测试前端项目**：启动前端开发服务器，确保ChatWindow组件能正常加载
+
+### 修改文件
+- `docs/TODO.md`：添加MVP-003任务列表
+- `ai_consult_frontend/src/components/ChatWindow.vue`：创建聊天窗口组件
+- `ai_consult_frontend/src/App.vue`：集成ChatWindow组件
+
+### 备注
+- 聊天窗口组件实现了悬浮窗式设计，支持响应式布局
+- 目前使用模拟数据，后续会对接后端API
+- 前端开发服务器已启动，可通过http://localhost:5173/访问
+
 ## 2026-03-03
 
 ### 操作内容
