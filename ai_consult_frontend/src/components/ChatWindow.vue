@@ -1,5 +1,6 @@
 <template>
-  <div class="chat-window" :class="{ 'chat-window--open': isOpen }">
+  <!-- 聊天窗口 -->
+  <div class="chat-window" v-if="isOpen">
     <!-- 聊天窗口头部 -->
     <div class="chat-window__header" @click="toggleChat">
       <div class="chat-window__header__title">
@@ -12,7 +13,7 @@
     </div>
 
     <!-- 聊天窗口主体 -->
-    <div class="chat-window__body" v-if="isOpen">
+    <div class="chat-window__body">
       <!-- 消息列表 -->
       <div class="chat-window__messages" ref="messagesContainer">
         <div 
@@ -58,12 +59,12 @@
         <button class="chat-window__send-button" @click="sendMessage">发送</button>
       </div>
     </div>
+  </div>
 
-    <!-- 聊天窗口触发器 -->
-    <div class="chat-window__trigger" v-if="!isOpen" @click="isOpen = true">
-      <div class="chat-window__trigger__icon">💬</div>
-      <div class="chat-window__trigger__text">在线客服</div>
-    </div>
+  <!-- 聊天窗口触发器 -->
+  <div class="chat-window__trigger" v-else @click="isOpen = true">
+    <div class="chat-window__trigger__icon">💬</div>
+    <div class="chat-window__trigger__text">在线客服</div>
   </div>
 </template>
 
