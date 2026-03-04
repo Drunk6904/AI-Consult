@@ -9,6 +9,9 @@ const errorMessage = ref('')
 const isLoading = ref(false)
 const uploadHistory = ref([])
 const user = ref(null)
+const documents = ref([])
+const documentsLoading = ref(false)
+const documentsError = ref('')
 
 const checkHealth = async () => {
   isLoading.value = true
@@ -51,12 +54,36 @@ const handleLogout = () => {
   user.value = null
 }
 
+const fetchDocuments = async () => {
+  documentsLoading.value = true
+  documentsError.value = ''
+  try {
+    const response = await fetch('/api/v1/knowledge/documents')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    if (data.success) {
+      documents.value = data.data
+    } else {
+      throw new Error(data.message || 'Failed to fetch documents')
+    }
+  } catch (error) {
+    documentsError.value = `Error: ${error.message}`
+    documents.value = []
+  } finally {
+    documentsLoading.value = false
+  }
+}
+
 onMounted(() => {
   checkHealth()
   // 检查本地存储中的用户信息
   const storedUser = localStorage.getItem('user')
   if (storedUser) {
     user.value = JSON.parse(storedUser)
+    // 当用户登录后，获取文档列表
+    fetchDocuments()
   }
 })
 </script>
@@ -115,6 +142,28 @@ onMounted(() => {
             <p>类型: {{ item.fileType }}</p>
             <p>时间: {{ item.timestamp }}</p>
           </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 知识库文档 -->
+    <section v-if="user" class="knowledge-base">
+      <h2>知识库文档</h2>
+      <button @click="fetchDocuments" :disabled="documentsLoading">
+        {{ documentsLoading ? '加载中...' : '刷新文档列表' }}
+      </button>
+      
+      <div v-if="documentsLoading" class="loading">
+        加载中...
+      </div>
+      
+      <div v-else-if="documentsError" class="status error">
+        <p>{{ documentsError }}</p>
+      </div>
+      
+      <div v-else-if="documents" class="documents-list">
+        <div class="document-item">
+          <pre>{{ JSON.stringify(documents, null, 2) }}</pre>
         </div>
       </div>
     </section>
@@ -264,5 +313,32 @@ button:disabled {
 
 .logout-btn:hover {
   background-color: #d32f2f;
+}
+
+.knowledge-base {
+  margin-top: 2rem;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.documents-list {
+  margin-top: 15px;
+}
+
+.document-item {
+  background-color: white;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.document-item pre {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
 }
 </style>

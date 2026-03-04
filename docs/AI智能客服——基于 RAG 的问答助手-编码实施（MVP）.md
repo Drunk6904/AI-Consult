@@ -6,7 +6,7 @@
 
 | 任务ID | 任务名称 | 功能描述 | 输入 | 输出 | 涉及模块 | 验收标准 |
 |--------|----------|----------|------|------|----------|----------|
-| **MVP-001** | 知识库基础搭建 | 支持PDF/Excel/Word上传，自动解析文本内容 | 多格式文档文件 | 结构化文本块+向量索引 | 后端(解析引擎/向量DB) | 支持PDF/Excel/Word；解析成功率>90%；支持100页以上文档 |
+| **MVP-001** | 知识库基础搭建 | 支持PDF/Excel/Word上传，自动解析文本内容，查看知识库文档列表 | 多格式文档文件 | 结构化文本块+向量索引+文档列表 | 后端(解析引擎/向量DB)+前端 | 支持PDF/Excel/Word；解析成功率>90%；支持100页以上文档；提供文档列表接口 |
 | **MVP-002** | RAG检索增强生成 | 基于知识库检索相关片段，结合LLM生成回答 | 用户query+知识库索引 | answer+sources+confidence | 后端(RAG引擎/LLM接口) | 响应<3秒；返回引用来源；准确率>95% |
 | **MVP-003** | Web聊天窗口 | 网页端悬浮窗，支持发送/接收消息 | 用户输入文本 | AI回复+引用来源展示 | 前端(Web SDK) | 加载<1秒；支持Markdown；移动端适配 |
 | **MVP-004** | 用户注册/登录 | JWT鉴权，区分注册/未注册用户 | 手机号/密码或游客ID | token+用户状态 | 后端(认证服务)+DB | 登录响应<2秒；token有效期24h |
@@ -78,6 +78,38 @@ Response:
     "status": "completed",
     "parsed_chunks": 120,
     "indexed_at": "2025-03-02T10:30:00Z"
+  }
+}
+
+# 获取知识库文档列表
+GET /api/v1/knowledge/documents
+Headers: Authorization: Bearer {token}
+
+Response:
+{
+  "code": 200,
+  "data": {
+    "documents": [
+      {
+        "id": "doc_001",
+        "name": "产品价格表2025Q1.pdf",
+        "size": 1024000,
+        "status": "completed",
+        "created_at": "2025-03-02T10:00:00Z",
+        "parsed_chunks": 120
+      },
+      {
+        "id": "doc_002",
+        "name": "用户手册.pdf",
+        "size": 2048000,
+        "status": "completed",
+        "created_at": "2025-03-01T15:30:00Z",
+        "parsed_chunks": 250
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "page_size": 10
   }
 }
 ```

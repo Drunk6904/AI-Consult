@@ -104,6 +104,9 @@
 25. **修复DifyService.java编译错误**：修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型
 26. **修复chat方法截断问题**：重新完整写入chat方法，确保语法正确
 27. **重启后端服务**：应用DifyService.java修复
+28. **实现知识库文档列表接口**：在KnowledgeController中添加GET /api/v1/knowledge/documents接口，用于获取Dify知识库中的文档列表
+29. **前端知识库文档列表功能**：在App.vue中添加知识库文档列表显示和刷新功能
+30. **重启前端服务**：应用前端代码更改
 
 ### 修改文件
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：修复健康检查接口权限
@@ -116,6 +119,8 @@
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：恢复认证服务
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：修复编译错误和语法问题，更新构造函数以直接使用配置中提供的URL，修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型，修复chat方法截断问题
 - `ai_consult_backend/src/main/resources/application.properties`：更新Dify API URL为http://localhost/v1
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java`：添加GET /api/v1/knowledge/documents接口，用于获取Dify知识库中的文档列表
+- `ai_consult_frontend/src/App.vue`：添加知识库文档列表显示和刷新功能
 - `ai_consult_backend/pom.xml`：添加JPA和H2数据库依赖
 - `ai_consult_frontend/src/components/ChatWindow.vue`：修正API请求路径
 - `.trae/rules/ai.md`：更新AI工作规则

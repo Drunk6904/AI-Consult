@@ -3,6 +3,7 @@ package com.zhuofeng.ai_consult_backend.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -136,5 +137,30 @@ public class KnowledgeController {
             }
         }
         return false;
+    }
+
+    /**
+     * 获取知识库文档列表
+     * 
+     * @return 文档列表
+     */
+    @GetMapping("/documents")
+    public ResponseEntity<Map<String, Object>> listDocuments() {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            log.info("Attempting to get document list from Dify");
+            Map<String, Object> documents = difyService.listDocuments().block();
+            log.info("Retrieved document list from Dify successfully");
+
+            response.put("success", true);
+            response.put("data", documents);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to get document list", e);
+            response.put("success", false);
+            response.put("message", "Failed to get document list: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 }
