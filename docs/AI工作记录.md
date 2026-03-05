@@ -1,5 +1,30 @@
 # AI工作记录
 
+## 2026-03-05
+
+### 操作内容
+1. **修复 Dify Chatflow API 调用问题**：根据 Dify 官方 API 文档，修正了 `chatflow` 方法的请求格式，添加了必需的 `inputs` 字段
+2. **分离 API Key 认证**：创建了 `datasetWebClient` 用于知识库操作，使用 `dify.dataset.api.key` 认证；`webClient` 用于 Chatflow 操作，使用 `dify.chatflow.api.key` 认证
+3. **更新知识库相关方法**：修改 `uploadDocument`、`deleteDocument`、`listDocuments` 方法使用 `datasetWebClient`
+4. **重启后端服务**：应用代码更改，确保服务正常运行
+5. **验证知识库功能**：确认 `/api/v1/knowledge/documents` 接口能成功获取文档列表
+6. **测试聊天功能**：修复 Chatflow API 调用，确保用户消息能正确发送到 Dify 并获取回复
+
+### 修改文件
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：
+  - 添加 `datasetWebClient` 和 `datasetApiKey` 字段
+  - 构造函数注入 `dify.dataset.api.key`
+  - 修改 `uploadDocument`、`deleteDocument`、`listDocuments` 方法使用 `datasetWebClient`
+  - 修正 `chatflow` 方法，添加 `inputs` 字段到请求体
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`：
+  - 更新响应字段名，使用驼峰命名 `conversationId` 和 `messageId`
+
+### 备注
+- 修复了 Dify Chatflow API 调用的参数格式问题
+- 分离了知识库和 Chatflow 的 API Key 认证，确保权限正确
+- 系统现在可以正常使用 Dify Chatflow 进行聊天，同时保持知识库功能正常
+- 前端可以通过 `POST /api/v1/chat/completions` 接口与 Dify 进行对话
+
 ## 2026-03-04
 
 ### 操作内容
@@ -74,61 +99,4 @@
 - 知识库ID需要用户在Dify中创建知识库后填写到application.properties文件中
 - 构建成功，代码可以正常运行
 
-## 2026-03-04
 
-### 操作内容
-1. **修复健康检查接口403错误**：更新SecurityConfig配置，添加对/health和/api/health的访问权限
-2. **修复JWT实现**：解决API兼容性问题，简化JWT实现使用Base64编码
-3. **完善前端代理配置**：添加rewrite规则，移除/api前缀
-4. **修复AuthController语法错误**：修正register方法的语法问题
-5. **测试用户注册/登录功能**：验证用户认证功能正常
-6. **合并MVP-004到MVP-003分支**：将用户认证功能合并到聊天窗口分支
-7. **恢复MVP-003分支文件**：恢复被误删的文件，确保所有功能正常
-8. **集成Dify平台**：配置Dify API密钥和知识库ID，实现文件上传到Dify知识库
-9. **更新文档**：更新TODO.md和AI工作记录.md
-10. **合并MVP-003到MVP-001分支**：将Web聊天窗口和用户认证功能合并到主MVP分支
-11. **解决合并冲突**：解决pom.xml和SecurityConfig.java的合并冲突
-12. **完成分支合并**：成功将所有功能合并到feature/mvp-001分支
-13. **修复DifyService编译错误**：修复WebClient.baseUrl()方法不存在和类型转换错误
-14. **恢复用户注册功能**：添加JPA和H2数据库依赖，恢复认证相关代码
-15. **统一API路径**：为所有控制器添加/api前缀，确保前端请求能正确映射
-16. **修复前端代理配置**：移除rewrite规则，确保API请求正确代理到后端
-17. **更新AI工作规则**：完善工作流程和操作规范
-18. **修复DifyService.java编译错误**：修复文件中的语法错误和不完整方法
-19. **启动后端服务**：解决端口冲突，成功启动后端服务
-20. **启动前端服务**：成功启动前端开发服务器
-21. **验证应用运行状态**：确保前端应用正常加载
-22. **修复Dify API配置**：更新DifyService构造函数，直接使用配置中提供的URL
-23. **更新application.properties**：将Dify API URL修改为http://localhost/v1，与Dify的实际API端点匹配
-24. **重启后端服务**：应用Dify API配置更改
-25. **修复DifyService.java编译错误**：修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型
-26. **修复chat方法截断问题**：重新完整写入chat方法，确保语法正确
-27. **重启后端服务**：应用DifyService.java修复
-28. **实现知识库文档列表接口**：在KnowledgeController中添加GET /api/v1/knowledge/documents接口，用于获取Dify知识库中的文档列表
-29. **前端知识库文档列表功能**：在App.vue中添加知识库文档列表显示和刷新功能
-30. **重启前端服务**：应用前端代码更改
-
-### 修改文件
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：修复健康检查接口权限
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：修复JWT实现
-- `ai_consult_frontend/vite.config.js`：完善前端代理配置，移除rewrite规则
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/AuthController.java`：修复语法错误，恢复认证功能
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/HealthController.java`：添加/api前缀
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`：添加/api前缀
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java`：添加/api前缀
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/AuthService.java`：恢复认证服务
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：修复编译错误和语法问题，更新构造函数以直接使用配置中提供的URL，修复类型不匹配错误，使用ParameterizedTypeReference处理Map<String, Object>类型，修复chat方法截断问题
-- `ai_consult_backend/src/main/resources/application.properties`：更新Dify API URL为http://localhost/v1
-- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/KnowledgeController.java`：添加GET /api/v1/knowledge/documents接口，用于获取Dify知识库中的文档列表
-- `ai_consult_frontend/src/App.vue`：添加知识库文档列表显示和刷新功能
-- `ai_consult_backend/pom.xml`：添加JPA和H2数据库依赖
-- `ai_consult_frontend/src/components/ChatWindow.vue`：修正API请求路径
-- `.trae/rules/ai.md`：更新AI工作规则
-- `docs/TODO.md`：更新任务状态
-- `docs/AI工作记录.md`：更新工作记录
-
-### 备注
-- Dify平台已成功集成，API端点：http://localhost/v1
-- 知识库地址：http://localhost/datasets/c26b5df9-bf76-4551-bcc7-131b3f4273b3/documents
-- 系统现在可以将上传的文件自动同步到Dify知识库
-- 所有分支功能已成功合并，系统运行正常

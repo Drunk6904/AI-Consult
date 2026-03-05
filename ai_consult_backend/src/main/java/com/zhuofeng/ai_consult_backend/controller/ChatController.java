@@ -41,17 +41,17 @@ public class ChatController {
                 userId = "anonymous";
             }
 
-            Map<String, Object> chatResponse = difyService.chat(query, userId).block();
-            log.info("Chat response received: {}", chatResponse);
+            Map<String, Object> chatflowResponse = difyService.chatflow(query, userId).block();
+            log.info("Chatflow response received: {}", chatflowResponse);
 
             // 构建标准响应格式
             Map<String, Object> data = new HashMap<>();
-            if (chatResponse != null) {
-                // 从Dify响应中提取信息
-                data.put("answer", chatResponse.get("answer"));
-                data.put("message", chatResponse.get("message"));
-                data.put("sources", chatResponse.get("sources"));
-                data.put("confidence", chatResponse.get("confidence"));
+            if (chatflowResponse != null) {
+                // 从 Chatflow 响应中提取信息
+                // Chatflow 返回的数据结构：{answer: "...", conversation_id: "...", ...}
+                data.put("answer", chatflowResponse.get("answer"));
+                data.put("conversationId", chatflowResponse.get("conversation_id"));
+                data.put("messageId", chatflowResponse.get("message_id"));
                 data.put("session_id", request.get("session_id"));
             }
 
