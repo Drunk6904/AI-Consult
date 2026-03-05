@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import FileUpload from './components/FileUpload.vue'
 import ChatWindow from './components/ChatWindow.vue'
+import ChatPage from './components/ChatPage.vue'
 import AuthComponent from './components/AuthComponent.vue'
 import KnowledgeBase from './components/KnowledgeBase.vue'
 
@@ -152,8 +153,10 @@ onMounted(() => {
       <KnowledgeBase :initialDocuments="documents" @refresh="fetchDocuments" />
     </section>
     
-    <!-- 聊天窗口 -->
-    <ChatWindow v-if="user" />
+    <!-- 聊天窗口（悬浮窗模式，带历史记录） -->
+    <ChatPage v-if="user" />
+    
+    <!-- 原 ChatWindow 组件已移除，功能由 ChatPage 替代 -->
   </div>
 </template>
 
