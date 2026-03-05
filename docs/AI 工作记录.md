@@ -406,3 +406,166 @@ addMessageToConversation(id, message) {
 - 使用单一数据源（localStorage）管理会话历史
 - 所有消息操作都通过 Service 层统一管理
 - 每次操作后立即保存，确保数据一致性
+
+---
+
+## 2026-03-05 会话持久化修复
+
+### 任务
+修复会话历史持久化问题，确保 AI 能够记住对话上下文
+
+### 问题分析
+- 前端生成的 session ID 格式为 `sess_1772698900827_c0tb63zis`（自定义格式）
+- Dify 平台要求 `conversation_id` 必须是 UUID 格式
+- 后端直接将前端 session ID 传递给 Dify，导致验证失败
+- 错误信息：`conversation_id must be a valid UUID`
+
+### 解决方案
+
+#### 1. 前端修改 - 会话管理服务
+
+**文件：** `ai_consult_frontend/src/services/conversationService.js`
+
+**修改内容：**
+- 新增 `difyConversationId` 字段，用于存储 Dify 返回的 UUID 格式 conversation_id
+- 添加 `setDifyConversationId()` 和 `getDifyConversationId()` 方法
+- 会话数据结构优化：
+
+```javascript
+{
+  id: "sess_xxx", // 前端自定义 ID
+  title: "会话标题",
+  messages: [...],
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  difyConversationId: "uuid-xxx" // Dify 生成的 UUID
+}
+```
+
+#### 2. 前端修改 - 聊天内容组件
+
+**文件：** `ai_consult_frontend/src/components/ChatContent.vue`
+
+**修改内容：**
+- 发送消息时，获取并传递 Dify conversation_id
+- 收到响应后，保存 Dify 返回的 conversation_id
+- 实现逻辑：
+  - 第一次请求：不传 conversation_id，让 Dify 生成
+  - 后续请求：使用保存的 Dify conversation_id
+
+#### 3. 后端修改 - 聊天控制器
+
+**文件：** `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`
+
+**修改内容：**
+- 新增 `isValidUUID()` 方法验证 UUID 格式
+- 只传递有效的 UUID 格式 conversation_id 给 Dify
+- 支持前端传递 `conversation_id` 参数
+
+#### 4. 后端修改 - Dify 服务
+
+**文件：** `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`
+
+**修改内容：**
+- 新增重载方法 `chatflow(String query, String userId, String conversationId)`
+- 支持传递 conversation_id 给 Dify API
+- 保持向后兼容性
+
+### 工作流程
+
+```
+第一次请求：
+前端 → session_id (自定义格式) → 后端 → 不传 conversation_id → Dify 生成 UUID → 返回
+                                    ↓
+前端保存：difyConversationId = UUID
+
+后续请求：
+前端 → session_id + difyConversationId (UUID) → 后端 → 传递 conversation_id → Dify
+                                                                    ↓
+                                                         维持对话上下文
+```
+
+### 技术特点
+
+1. **UUID 验证**
+   - 后端添加 UUID 格式验证
+   - 确保只传递有效的 UUID 给 Dify
+
+2. **会话状态管理**
+   - 前端本地存储 Dify conversation_id
+   - 实现前端会话 ID 与 Dify conversation_id 的映射
+
+3. **向后兼容**
+   - 保留原有方法签名
+   - 支持无 conversation_id 的请求
+
+4. **错误处理**
+   - 优雅处理 UUID 格式错误
+   - 确保系统稳定性
+
+### 验收情况
+
+✅ 第一次请求成功生成 Dify conversation_id
+✅ 后续请求正确传递 conversation_id
+✅ AI 能够记住同一会话的历史对话
+✅ 不同会话之间历史记录独立
+✅ 切换会话后 AI 基于对应会话的历史进行回复
+
+### 文件清单
+
+**前端修改：**
+- `ai_consult_frontend/src/services/conversationService.js` - 新增 Dify conversation_id 管理
+- `ai_consult_frontend/src/components/ChatContent.vue` - 实现会话 ID 传递逻辑
+
+**后端修改：**
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java` - 新增 UUID 验证和 conversation_id 处理
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java` - 新增重载方法支持 conversation_id
+
+**新增规范文档：**
+- `.trae/specs/fix-conversation-history-persistence/spec.md` - 修复规范
+- `.trae/specs/fix-conversation-history-persistence/tasks.md` - 任务列表
+- `.trae/specs/fix-conversation-history-persistence/checklist.md` - 检查清单
+
+### 测试验证
+
+1. **会话记忆测试**
+   - 新建会话，发送消息："你好，我叫张三"
+   - 发送第二条消息："我刚才说了什么？"
+   - AI 回复："你说你叫张三"
+
+2. **会话独立性测试**
+   - 新建会话 A，发送："我喜欢红色"
+   - 新建会话 B，发送："我喜欢蓝色"
+   - 在会话 A 中问："我喜欢什么颜色？"
+   - AI 回复："你喜欢红色"
+
+3. **会话切换测试**
+   - 在会话 A 中进行多轮对话
+   - 切换到会话 B 进行对话
+   - 切换回会话 A
+   - 验证 AI 仍然记得会话 A 的历史
+
+### 技术亮点
+
+1. **智能会话管理**
+   - 自动处理 Dify conversation_id 的生成和存储
+   - 实现前端会话与 Dify 会话的一一映射
+
+2. **健壮性设计**
+   - 后端添加 UUID 验证，防止格式错误
+   - 优雅处理各种边界情况
+
+3. **用户体验**
+   - 无感知实现会话持久化
+   - 用户只需正常使用，无需关心底层实现
+
+4. **扩展性**
+   - 为后续的云端同步等功能奠定基础
+   - 保持代码结构清晰可维护
+
+### 后续优化
+
+1. **云端同步**：将会话历史存储到后端数据库
+2. **会话导出**：支持导出聊天记录
+3. **会话搜索**：支持搜索历史会话内容
+4. **多设备同步**：基于用户账号的会话同步

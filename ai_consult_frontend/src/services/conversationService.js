@@ -83,11 +83,27 @@ export default {
         }
       ],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      difyConversationId: null  // 存储 Dify 返回的 conversation_id
     }
     this.saveConversation(conversation)
     this.setCurrentSessionId(id)
     return conversation
+  },
+  
+  setDifyConversationId(id, difyConversationId) {
+    const conversation = this.getConversation(id)
+    if (conversation) {
+      conversation.difyConversationId = difyConversationId
+      this.saveConversation(conversation)
+      return true
+    }
+    return false
+  },
+  
+  getDifyConversationId(id) {
+    const conversation = this.getConversation(id)
+    return conversation ? conversation.difyConversationId : null
   },
   
   updateConversationMessages(id, messages) {

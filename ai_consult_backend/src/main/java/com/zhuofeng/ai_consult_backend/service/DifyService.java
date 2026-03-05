@@ -204,11 +204,28 @@ public class DifyService {
      * @return 问答结果
      */
     public Mono<Map<String, Object>> chatflow(String query, String userId) {
+        return chatflow(query, userId, null);
+    }
+
+    /**
+     * 调用 Dify Chatflow 进行问答（带会话 ID）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param conversationId 会话 ID（用于维持对话上下文）
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> chatflow(String query, String userId, String conversationId) {
         Map<String, Object> request = new HashMap<>();
         request.put("query", query);
         request.put("inputs", new HashMap<>()); // 必须包含 inputs 字段
         request.put("user", userId);
         request.put("response_mode", "blocking");
+        
+        // 如果提供了会话 ID，则传递给 Dify 以维持对话上下文
+        if (conversationId != null && !conversationId.isEmpty()) {
+            request.put("conversation_id", conversationId);
+        }
 
         return webClient.post()
                 .uri("/chat-messages")

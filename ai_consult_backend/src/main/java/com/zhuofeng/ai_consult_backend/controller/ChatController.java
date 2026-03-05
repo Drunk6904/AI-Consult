@@ -30,6 +30,8 @@ public class ChatController {
         try {
             String query = (String) request.get("query");
             String userId = (String) request.get("user");
+            String sessionId = (String) request.get("session_id");
+            String conversationId = (String) request.get("conversation_id");
 
             if (query == null || query.isEmpty()) {
                 response.put("success", false);
@@ -41,7 +43,21 @@ public class ChatController {
                 userId = "anonymous";
             }
 
-            Map<String, Object> chatflowResponse = difyService.chatflow(query, userId).block();
+            // 只传递有效的 UUID 格式 conversation_id 给 Dify
+            // 前端传递的 session_id 是自定义格式，不能直接传给 Dify
+            String difyConversationId = null;
+            if (conversationId != null && !conversationId.isEmpty() && isValidUUID(conversationId)) {
+                difyConversationId = conversationId;
+            }
+            
+            // 如果提供了有效的会话 ID，则使用带会话 ID 的 chatflow 方法
+            Map<String, Object> chatflowResponse;
+            if (difyConversationId != null && !difyConversationId.isEmpty()) {
+                chatflowResponse = difyService.chatflow(query, userId, difyConversationId).block();
+            } else {
+                chatflowResponse = difyService.chatflow(query, userId).block();
+            }
+            
             log.info("Chatflow response received: {}", chatflowResponse);
 
             // 构建标准响应格式
@@ -52,7 +68,7 @@ public class ChatController {
                 data.put("answer", chatflowResponse.get("answer"));
                 data.put("conversationId", chatflowResponse.get("conversation_id"));
                 data.put("messageId", chatflowResponse.get("message_id"));
-                data.put("session_id", request.get("session_id"));
+                data.put("session_id", sessionId);
             }
 
             response.put("success", true);
@@ -65,6 +81,21 @@ public class ChatController {
             response.put("success", false);
             response.put("message", "Failed to process chat request: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * 验证字符串是否为有效的 UUID 格式
+     */
+    private boolean isValidUUID(String uuid) {
+        if (uuid == null || uuid.isEmpty()) {
+            return false;
+        }
+        try {
+            java.util.UUID.fromString(uuid);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 }

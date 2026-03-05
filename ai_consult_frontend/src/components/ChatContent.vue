@@ -61,6 +61,8 @@
 </template>
 
 <script>
+import conversationService from '../services/conversationService'
+
 export default {
   name: 'ChatContent',
   props: {
@@ -133,16 +135,26 @@ export default {
       this.error = null
 
       try {
+        // 获取 Dify 的 conversation_id
+        const difyConversationId = conversationService.getDifyConversationId(this.sessionId)
+        
+        const requestBody = {
+          query: userMessage.content,
+          user: 'anonymous',
+          session_id: this.sessionId
+        }
+        
+        // 如果有 Dify conversation_id，则传递给后端
+        if (difyConversationId) {
+          requestBody.conversation_id = difyConversationId
+        }
+        
         const response = await fetch('/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            query: userMessage.content,
-            user: 'anonymous',
-            session_id: this.sessionId
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (!response.ok) {
@@ -162,6 +174,12 @@ export default {
           }
           this.messages.push(aiMessage)
           this.$emit('message-received', aiMessage)
+          
+          // 保存 Dify 返回的 conversation_id
+          if (chatData.conversationId && chatData.conversationId !== difyConversationId) {
+            conversationService.setDifyConversationId(this.sessionId, chatData.conversationId)
+            console.log('保存 Dify conversation_id:', chatData.conversationId)
+          }
         } else {
           throw new Error(data.message || 'API 调用失败')
         }
