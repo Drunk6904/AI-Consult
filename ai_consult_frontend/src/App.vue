@@ -1,19 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import FileUpload from './components/FileUpload.vue'
 import ChatWindow from './components/ChatWindow.vue'
 import ChatPage from './components/ChatPage.vue'
 import AuthComponent from './components/AuthComponent.vue'
 import KnowledgeBase from './components/KnowledgeBase.vue'
+import RoleManagement from './views/RoleManagement.vue'
+import UserManagement from './views/UserManagement.vue'
 
 const healthStatus = ref(null)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const uploadHistory = ref([])
 const user = ref(null)
+const userRoles = ref([])
 const documents = ref({ data: [] })
 const documentsLoading = ref(false)
 const documentsError = ref('')
+const currentView = ref('home')
 
 const checkHealth = async () => {
   isLoading.value = true
@@ -48,12 +52,34 @@ const handleUploadError = (error) => {
 
 const handleLoginSuccess = (userData) => {
   user.value = userData
+  // 获取用户角色
+  const storedRoles = localStorage.getItem('user_roles')
+  if (storedRoles) {
+    userRoles.value = JSON.parse(storedRoles)
+  }
 }
 
 const handleLogout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  localStorage.removeItem('user_roles')
+  localStorage.removeItem('user_permissions')
   user.value = null
+  userRoles.value = []
+  currentView.value = 'home'
+}
+
+const isAdmin = computed(() => {
+  return userRoles.value.includes('ADMIN') || userRoles.value.includes('SUPER_ADMIN')
+})
+
+const userPermissions = computed(() => {
+  const permissions = localStorage.getItem('user_permissions')
+  return permissions ? JSON.parse(permissions) : []
+})
+
+const switchView = (view) => {
+  currentView.value = view
 }
 
 const fetchDocuments = async () => {
@@ -92,12 +118,12 @@ onMounted(() => {
 
 <template>
   <div class="container">
-    <h1>AI智能客服系统</h1>
+    <h1>AI 智能客服系统</h1>
     
     <!-- 用户认证 -->
     <section class="auth-section">
       <div v-if="user" class="user-info">
-        <span>欢迎, {{ user.username }}</span>
+        <span>欢迎，{{ user.username }} ({{ user.roles ? user.roles.join(', ') : '' }})</span>
         <button @click="handleLogout" class="logout-btn">退出登录</button>
       </div>
       <div v-else>
@@ -105,58 +131,85 @@ onMounted(() => {
       </div>
     </section>
     
-    <!-- 健康检查 -->
-    <section class="health-check" v-if="user">
-      <h2>系统状态</h2>
-      <button @click="checkHealth" :disabled="isLoading">
-        {{ isLoading ? '检查中...' : '检查健康状态' }}
-      </button>
-      
-      <div v-if="isLoading" class="loading">
-        加载中...
-      </div>
-      
-      <div v-else-if="healthStatus" class="status success">
-        <p>后端服务状态: {{ healthStatus.ok ? '正常' : '异常' }}</p>
-      </div>
-      
-      <div v-else-if="errorMessage" class="status error">
-        <p>{{ errorMessage }}</p>
+    <!-- 导航菜单（仅管理员可见） -->
+    <section v-if="user && isAdmin" class="admin-nav">
+      <div class="nav-tabs">
+        <button 
+          :class="['nav-tab', currentView === 'home' ? 'active' : '']"
+          @click="switchView('home')"
+        >首页</button>
+        <button 
+          :class="['nav-tab', currentView === 'roles' ? 'active' : '']"
+          @click="switchView('roles')"
+          v-if="userPermissions?.includes('role:manage')"
+        >角色管理</button>
+        <button 
+          :class="['nav-tab', currentView === 'users' ? 'active' : '']"
+          @click="switchView('users')"
+          v-if="userPermissions?.includes('user:manage')"
+        >用户管理</button>
       </div>
     </section>
     
-    <!-- 文件上传 -->
-    <section class="file-upload-section" v-if="user">
-      <FileUpload 
-        @upload-success="handleUploadSuccess"
-        @upload-error="handleUploadError"
-      />
-    </section>
+    <!-- 管理后台内容 -->
+    <div v-if="user && isAdmin" class="admin-content">
+      <RoleManagement v-if="currentView === 'roles'" />
+      <UserManagement v-if="currentView === 'users'" />
+    </div>
     
-    <!-- 上传历史 -->
-    <section v-if="user && uploadHistory.length > 0" class="upload-history">
-      <h2>上传历史</h2>
-      <div class="history-list">
-        <div v-for="item in uploadHistory" :key="item.id" class="history-item">
-          <div class="item-info">
-            <h3>{{ item.fileName }}</h3>
-            <p>大小: {{ (item.fileSize / 1024 / 1024).toFixed(2) }} MB</p>
-            <p>类型: {{ item.fileType }}</p>
-            <p>时间: {{ item.timestamp }}</p>
+    <!-- 首页内容 -->
+    <div v-if="currentView === 'home' || !isAdmin">
+      <!-- 健康检查 -->
+      <section class="health-check" v-if="user">
+        <h2>系统状态</h2>
+        <button @click="checkHealth" :disabled="isLoading">
+          {{ isLoading ? '检查中...' : '检查健康状态' }}
+        </button>
+        
+        <div v-if="isLoading" class="loading">
+          加载中...
+        </div>
+        
+        <div v-else-if="healthStatus" class="status success">
+          <p>后端服务状态：{{ healthStatus.ok ? '正常' : '异常' }}</p>
+        </div>
+        
+        <div v-else-if="errorMessage" class="status error">
+          <p>{{ errorMessage }}</p>
+        </div>
+      </section>
+      
+      <!-- 文件上传 -->
+      <section class="file-upload-section" v-if="user">
+        <FileUpload 
+          @upload-success="handleUploadSuccess"
+          @upload-error="handleUploadError"
+        />
+      </section>
+      
+      <!-- 上传历史 -->
+      <section v-if="user && uploadHistory.length > 0" class="upload-history">
+        <h2>上传历史</h2>
+        <div class="history-list">
+          <div v-for="item in uploadHistory" :key="item.id" class="history-item">
+            <div class="item-info">
+              <h3>{{ item.fileName }}</h3>
+              <p>大小：{{ (item.fileSize / 1024 / 1024).toFixed(2) }} MB</p>
+              <p>类型：{{ item.fileType }}</p>
+              <p>时间：{{ item.timestamp }}</p>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-    
-    <!-- 知识库文档 -->
-    <section v-if="user" class="knowledge-base">
-      <KnowledgeBase :initialDocuments="documents" @refresh="fetchDocuments" />
-    </section>
-    
-    <!-- 聊天窗口（悬浮窗模式，带历史记录） -->
-    <ChatPage v-if="user" />
-    
-    <!-- 原 ChatWindow 组件已移除，功能由 ChatPage 替代 -->
+      </section>
+      
+      <!-- 知识库文档 -->
+      <section v-if="user" class="knowledge-base">
+        <KnowledgeBase :initialDocuments="documents" @refresh="fetchDocuments" />
+      </section>
+      
+      <!-- 聊天窗口（悬浮窗模式，带历史记录） -->
+      <ChatPage v-if="user" />
+    </div>
   </div>
 </template>
 
@@ -179,21 +232,49 @@ h2 {
   margin-bottom: 1rem;
 }
 
-.health-check {
-  background-color: #f9f9f9;
-  padding: 20px;
+/* 管理员导航菜单 */
+.admin-nav {
+  margin-bottom: 20px;
+  background: #f0f2f5;
+  padding: 10px;
   border-radius: 8px;
-  margin-bottom: 2rem;
-  text-align: center;
 }
 
-.file-upload-section {
-  margin-bottom: 2rem;
+.nav-tabs {
+  display: flex;
+  gap: 10px;
 }
 
-.upload-history {
-  background-color: #f9f9f9;
+.nav-tab {
+  padding: 10px 20px;
+  border: none;
+  background: white;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.nav-tab:hover {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.nav-tab.active {
+  background: #1890ff;
+  color: white;
+}
+
+.admin-content {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.auth-section {
+  margin-bottom: 2rem;
   padding: 20px;
+  background-color: #f9f9f9;
   border-radius: 8px;
 }
 

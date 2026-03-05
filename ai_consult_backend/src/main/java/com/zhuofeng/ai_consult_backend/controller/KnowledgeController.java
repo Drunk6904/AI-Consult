@@ -152,9 +152,12 @@ public class KnowledgeController {
             log.info("Attempting to get document list from Dify");
             Map<String, Object> documents = difyService.listDocuments().block();
             log.info("Retrieved document list from Dify successfully");
+            log.info("Dify response: " + documents);
 
+            // 提取 data 字段作为文档列表
+            Object data = documents != null ? documents.get("data") : new ArrayList<>();
             response.put("success", true);
-            response.put("data", documents);
+            response.put("data", data);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to get document list", e);

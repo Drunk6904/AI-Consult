@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import axios from '../utils/axios'
 
 const props = defineProps({
   initialDocuments: {
@@ -18,15 +19,15 @@ const fetchDocuments = async () => {
   isLoading.value = true
   error.value = ''
   try {
-    const response = await fetch('/api/v1/knowledge/documents')
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    const data = await response.json()
-    if (data.success) {
-      documents.value = data.data
+    const response = await axios.get('/api/v1/knowledge/documents')
+    if (response.data.success) {
+      // 正确处理响应结构：response.data.data.data 包含文档数组
+      documents.value = {
+        data: response.data.data.data || [],
+        total: response.data.data.total || 0
+      }
     } else {
-      throw new Error(data.message || 'Failed to fetch documents')
+      throw new Error(response.data.message || 'Failed to fetch documents')
     }
   } catch (err) {
     error.value = `Error: ${err.message}`

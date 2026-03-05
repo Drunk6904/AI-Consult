@@ -9,37 +9,31 @@ import java.util.Set;
 
 @Entity
 @Data
-@Table(name = "users")
-public class User {
+@Table(name = "roles")
+public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
+    @Column(name = "role_name", nullable = false, length = 50)
+    private String roleName;
     
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
-    
-    @Column(length = 20)
-    private String phone;
-    
-    @Column(nullable = false)
-    private String password;
+    @Column(name = "role_code", nullable = false, unique = true, length = 50)
+    private String roleCode;
     
     @Column(length = 255)
-    private String avatar;
+    private String description;
     
     @Column(nullable = false)
     private Integer status = 1;  // 1:正常，0:禁用
     
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private Set<Role> roles = new HashSet<>();
+    private Set<Permission> permissions = new HashSet<>();
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

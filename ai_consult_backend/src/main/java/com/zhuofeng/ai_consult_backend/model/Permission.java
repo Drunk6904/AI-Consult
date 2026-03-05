@@ -4,42 +4,38 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Data
-@Table(name = "users")
-public class User {
+@Table(name = "permissions")
+public class Permission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
+    @Column(name = "permission_name", nullable = false, length = 100)
+    private String permissionName;
     
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
+    @Column(name = "permission_code", nullable = false, unique = true, length = 100)
+    private String permissionCode;
     
-    @Column(length = 20)
-    private String phone;
+    @Column(name = "resource_type", length = 20)
+    private String resourceType;  // MENU, BUTTON, API
     
-    @Column(nullable = false)
-    private String password;
+    @Column(name = "parent_id")
+    private Long parentId = 0L;
     
     @Column(length = 255)
-    private String avatar;
+    private String path;
+    
+    @Column(length = 50)
+    private String icon;
+    
+    @Column(name = "sort_order")
+    private Integer sortOrder = 0;
     
     @Column(nullable = false)
     private Integer status = 1;  // 1:正常，0:禁用
-    
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

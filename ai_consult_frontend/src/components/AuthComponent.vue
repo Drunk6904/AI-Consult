@@ -86,13 +86,23 @@ export default {
           body: JSON.stringify(this.formData)
         })
         
+        // 获取响应文本以查看详细错误
+        const responseText = await response.text()
+        console.error('响应状态:', response.status)
+        console.error('响应内容:', responseText)
+        
         if (!response.ok) {
-          throw new Error('服务暂时不可用，请稍后重试')
+          try {
+            const errorData = JSON.parse(responseText)
+            throw new Error(errorData.error || errorData.message || '请求失败')
+          } catch (parseError) {
+            throw new Error(`HTTP ${response.status}: ${responseText || '服务暂时不可用，请稍后重试'}`)
+          }
         }
         
         let data
         try {
-          data = await response.json()
+          data = JSON.parse(responseText)
         } catch (jsonError) {
           throw new Error('服务返回的数据格式错误')
         }
@@ -102,9 +112,18 @@ export default {
         }
         
         if (!this.isRegister) {
-          // 登录成功，保存token和用户信息
+          // 登录成功，保存 token 和用户信息
           localStorage.setItem('token', data.token)
           localStorage.setItem('user', JSON.stringify(data.user))
+          
+          // 保存角色和权限信息
+          if (data.user.roles) {
+            localStorage.setItem('user_roles', JSON.stringify(data.user.roles))
+          }
+          if (data.user.permissions) {
+            localStorage.setItem('user_permissions', JSON.stringify(data.user.permissions))
+          }
+          
           this.$emit('login-success', data.user)
         } else {
           // 注册成功，切换到登录表单

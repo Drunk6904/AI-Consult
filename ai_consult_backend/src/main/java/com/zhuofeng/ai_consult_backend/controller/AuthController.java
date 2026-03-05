@@ -55,14 +55,21 @@ public class AuthController {
             }
 
             User user = authService.login(username, password);
-            String token = jwtService.generateToken(user.getUsername());
+            String token = jwtService.generateToken(user);
+
+            // 提取角色和权限
+            java.util.List<String> roles = jwtService.extractRoles(token);
+            java.util.Set<String> permissions = jwtService.extractPermissions(token);
 
             return ResponseEntity.ok(Map.of(
+                    "success", true,
                     "token", token,
                     "user", Map.of(
                             "id", user.getId(),
                             "username", user.getUsername(),
-                            "email", user.getEmail())));
+                            "email", user.getEmail(),
+                            "roles", roles,
+                            "permissions", permissions)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

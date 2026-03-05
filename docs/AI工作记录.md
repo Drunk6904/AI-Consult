@@ -35,6 +35,50 @@
 - 知识库文档组件提供了友好的用户界面，显示文档的详细信息，包括文件大小、创建时间、词数、Token数和引用次数等
 - 前端开发服务器已启动，可通过 http://localhost:5174/ 访问
 
+## 2026-03-05 (续)
+
+### 操作内容
+1. **开始MVP-005权限分级控制开发**：创建了Role、Permission实体类，实现了完整的RBAC权限模型
+2. **实现数据初始化**：创建DataInitializer类，自动初始化4个预定义角色和18个权限，创建默认管理员账号
+3. **实现角色管理后端**：创建RoleController、RoleService、RoleRepository，提供角色的CRUD操作
+4. **实现权限管理后端**：创建PermissionController、PermissionService、PermissionRepository，提供权限管理功能
+5. **实现用户角色关联**：修改User实体，添加角色关联，实现用户角色分配功能
+6. **实现JWT认证过滤器**：创建JwtAuthenticationFilter，实现基于JWT的身份认证
+7. **更新JWT服务**：修改JwtService，在JWT中包含角色和权限信息
+8. **前端管理后台**：创建RoleManagement和UserManagement组件，实现角色和用户管理界面
+9. **修复JWT认证问题**：修复了JWT Token验证失败的问题，修正了exp字段解析逻辑
+10. **修复CORS配置问题**：解决了CORS跨域配置冲突，在SecurityConfig中正确配置CORS
+11. **修复知识库文档显示**：修改KnowledgeBase组件，使用axios代替fetch，正确处理响应结构
+
+### 修改文件
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/model/Role.java`：创建角色实体类
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/model/Permission.java`：创建权限实体类
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/repository/RoleRepository.java`：创建角色Repository
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/repository/PermissionRepository.java`：创建权限Repository
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/RoleService.java`：创建角色服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/PermissionService.java`：创建权限服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/RoleController.java`：创建角色控制器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/PermissionController.java`：创建权限控制器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/DataInitializer.java`：创建数据初始化类
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/filter/JwtAuthenticationFilter.java`：创建JWT认证过滤器
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/JwtService.java`：更新JWT服务
+- `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/config/SecurityConfig.java`：更新安全配置，添加CORS配置
+- `ai_consult_frontend/src/views/RoleManagement.vue`：创建角色管理组件
+- `ai_consult_frontend/src/views/UserManagement.vue`：创建用户管理组件
+- `ai_consult_frontend/src/services/permissionService.js`：创建权限服务API
+- `ai_consult_frontend/src/utils/axios.js`：创建axios配置，添加请求拦截器
+- `ai_consult_frontend/src/App.vue`：更新App.vue，添加管理后台导航
+- `ai_consult_frontend/src/components/KnowledgeBase.vue`：修改知识库组件，使用axios
+
+### 备注
+- 实现了完整的RBAC权限模型，包含4个预定义角色（SUPER_ADMIN、ADMIN、USER、GUEST）和18个细粒度权限
+- 系统自动初始化角色和权限数据，创建默认管理员账号（admin/admin）
+- 修复了JWT Token验证失败的问题，修正了exp字段解析逻辑
+- 解决了CORS跨域配置冲突，确保前端可以正常访问后端API
+- 前端管理后台提供了角色管理和用户管理功能，支持角色的创建、编辑、删除和用户角色分配
+- 知识库组件现在使用axios代替fetch，正确处理JWT认证和响应结构
+- 系统现在可以正常进行权限验证，确保不同角色只能访问授权的功能
+
 ## 2026-03-04
 
 ### 操作内容
