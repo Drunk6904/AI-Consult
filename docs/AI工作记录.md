@@ -9,6 +9,10 @@
 4. **重启后端服务**：应用代码更改，确保服务正常运行
 5. **验证知识库功能**：确认 `/api/v1/knowledge/documents` 接口能成功获取文档列表
 6. **测试聊天功能**：修复 Chatflow API 调用，确保用户消息能正确发送到 Dify 并获取回复
+7. **创建知识库文档组件**：创建了 `KnowledgeBase.vue` 组件，用于显示知识库文档列表，包括文件大小格式化、日期格式化和状态徽章等功能
+8. **更新App.vue**：修改 `App.vue` 文件，使用新的 `KnowledgeBase` 组件替换旧的文档列表显示方式
+9. **重启前端服务**：应用前端代码更改，确保服务正常运行
+10. **验证知识库组件**：确认知识库组件能正确显示文档列表
 
 ### 修改文件
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/service/DifyService.java`：
@@ -18,12 +22,18 @@
   - 修正 `chatflow` 方法，添加 `inputs` 字段到请求体
 - `ai_consult_backend/src/main/java/com/zhuofeng/ai_consult_backend/controller/ChatController.java`：
   - 更新响应字段名，使用驼峰命名 `conversationId` 和 `messageId`
+- `ai_consult_frontend/src/components/KnowledgeBase.vue`：
+  - 创建知识库文档组件，包含文档列表显示、刷新功能、文件大小格式化、日期格式化和状态徽章等功能
+- `ai_consult_frontend/src/App.vue`：
+  - 导入并使用 `KnowledgeBase` 组件，替换旧的文档列表显示方式
 
 ### 备注
 - 修复了 Dify Chatflow API 调用的参数格式问题
 - 分离了知识库和 Chatflow 的 API Key 认证，确保权限正确
 - 系统现在可以正常使用 Dify Chatflow 进行聊天，同时保持知识库功能正常
 - 前端可以通过 `POST /api/v1/chat/completions` 接口与 Dify 进行对话
+- 知识库文档组件提供了友好的用户界面，显示文档的详细信息，包括文件大小、创建时间、词数、Token数和引用次数等
+- 前端开发服务器已启动，可通过 http://localhost:5174/ 访问
 
 ## 2026-03-04
 

@@ -3,13 +3,14 @@ import { ref, onMounted } from 'vue'
 import FileUpload from './components/FileUpload.vue'
 import ChatWindow from './components/ChatWindow.vue'
 import AuthComponent from './components/AuthComponent.vue'
+import KnowledgeBase from './components/KnowledgeBase.vue'
 
 const healthStatus = ref(null)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const uploadHistory = ref([])
 const user = ref(null)
-const documents = ref([])
+const documents = ref({ data: [] })
 const documentsLoading = ref(false)
 const documentsError = ref('')
 
@@ -70,7 +71,7 @@ const fetchDocuments = async () => {
     }
   } catch (error) {
     documentsError.value = `Error: ${error.message}`
-    documents.value = []
+    documents.value = { data: [] }
   } finally {
     documentsLoading.value = false
   }
@@ -148,24 +149,7 @@ onMounted(() => {
     
     <!-- 知识库文档 -->
     <section v-if="user" class="knowledge-base">
-      <h2>知识库文档</h2>
-      <button @click="fetchDocuments" :disabled="documentsLoading">
-        {{ documentsLoading ? '加载中...' : '刷新文档列表' }}
-      </button>
-      
-      <div v-if="documentsLoading" class="loading">
-        加载中...
-      </div>
-      
-      <div v-else-if="documentsError" class="status error">
-        <p>{{ documentsError }}</p>
-      </div>
-      
-      <div v-else-if="documents" class="documents-list">
-        <div class="document-item">
-          <pre>{{ JSON.stringify(documents, null, 2) }}</pre>
-        </div>
-      </div>
+      <KnowledgeBase :initialDocuments="documents" @refresh="fetchDocuments" />
     </section>
     
     <!-- 聊天窗口 -->
