@@ -272,3 +272,137 @@ watch: {
 3. 添加会话重命名功能
 4. 支持导出聊天记录
 5. 云端同步（多设备）
+
+---
+
+## 2026-03-05 历史记录消息保存修复
+
+### 任务
+修复 AI 回复消息未被保存到历史记录的问题
+
+### 问题分析
+- 用户发送的消息被正确保存
+- AI 的回复消息没有被保存到 localStorage
+- 切换会话后，只能看到用户消息和初始欢迎语，看不到 AI 的历史回复
+
+### 根本原因
+`ChatPage.vue` 中的 `handleMessageReceived` 方法使用了错误的方式更新会话：
+
+```javascript
+// 错误的实现
+handleMessageReceived(message) {
+  const conversation = conversationService.getConversation(this.currentSessionId)
+  if (conversation) {
+    conversationService.updateConversationMessages(
+      this.currentSessionId, 
+      conversation.messages  // 问题：这里使用的是旧的 messages 数组
+    )
+  }
+}
+```
+
+问题在于：
+1. `updateConversationMessages` 方法只是替换消息数组
+2. 调用时传入的 `conversation.messages` 还没有包含最新的 AI 回复
+3. 导致 AI 回复没有被持久化保存
+
+### 解决方案
+
+#### 1. 修改 ChatPage.vue 的消息处理逻辑
+
+```javascript
+// 修复后的实现
+handleMessageReceived(message) {
+  if (this.currentSessionId) {
+    // 使用 addMessageToConversation 追加消息并保存
+    conversationService.addMessageToConversation(this.currentSessionId, message)
+    this.loadConversation(this.currentSessionId)
+  }
+}
+```
+
+#### 2. 优化 conversationService.js 的消息添加逻辑
+
+```javascript
+addMessageToConversation(id, message) {
+  const conversation = this.getConversation(id)
+  if (conversation) {
+    conversation.messages.push(message)  // 追加消息
+    conversation.updatedAt = Date.now()
+    
+    // 如果是第一条用户消息，更新标题
+    if (message.role === 'user') {
+      const userMessages = conversation.messages.filter(m => m.role === 'user')
+      if (userMessages.length === 1) {
+        conversation.title = message.content.substring(0, 20) + '...'
+      }
+    }
+    
+    this.saveConversation(conversation)  // 保存到 localStorage
+    return conversation
+  }
+  return null
+}
+```
+
+### 技术改进
+
+1. **统一消息保存方式**
+   - 用户消息和 AI 回复都使用 `addMessageToConversation` 方法
+   - 确保所有消息都被追加并保存到 localStorage
+
+2. **智能标题更新**
+   - 优化了标题更新逻辑
+   - 只有当收到第一条用户消息时才更新标题
+   - 使用 `filter` 方法准确判断是否为用户的第一条消息
+
+3. **数据持久化**
+   - 每次添加消息后立即调用 `saveConversation`
+   - 确保数据实时同步到 localStorage
+
+### 验收情况
+
+✅ 用户消息正确保存
+✅ AI 回复消息正确保存
+✅ 切换会话后显示完整的对话历史（包括用户和 AI 的消息）
+✅ 页面刷新后所有历史记录保留
+✅ 会话标题正确更新（基于第一条用户消息）
+
+### 文件清单
+
+**修改文件：**
+- `ai_consult_frontend/src/components/ChatPage.vue` - 修复消息接收处理逻辑
+- `ai_consult_frontend/src/services/conversationService.js` - 优化消息添加逻辑
+
+### 测试验证
+
+1. **新建会话测试**
+   - 创建新会话
+   - 发送消息："你好"
+   - 等待 AI 回复
+   - 刷新页面
+   - 验证：用户消息和 AI 回复都显示
+
+2. **会话切换测试**
+   - 创建多个会话
+   - 在每个会话中发送消息并等待 AI 回复
+   - 切换到不同会话
+   - 验证：每个会话都显示完整的对话历史
+
+3. **多轮对话测试**
+   - 在同一个会话中进行多轮对话
+   - 切换到其他会话
+   - 切换回来
+   - 验证：所有轮次的对话都完整显示
+
+### 经验总结
+
+**问题教训：**
+- 消息保存逻辑需要统一，避免多处实现导致不一致
+- 接收消息时必须立即持久化，不能依赖临时状态
+- 测试时要覆盖完整的用户场景（发送→接收→切换→返回）
+
+**最佳实践：**
+- 使用单一数据源（localStorage）管理会话历史
+- 所有消息操作都通过 Service 层统一管理
+- 每次操作后立即保存，确保数据一致性

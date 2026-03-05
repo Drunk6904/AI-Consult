@@ -115,8 +115,12 @@ export default {
       conversation.messages.push(message)
       conversation.updatedAt = Date.now()
       
-      if (conversation.messages.length === 2 && message.role === 'user') {
-        conversation.title = message.content.substring(0, 20) + (message.content.length > 20 ? '...' : '')
+      // 如果是第一条用户消息，更新标题
+      if (message.role === 'user') {
+        const userMessages = conversation.messages.filter(m => m.role === 'user')
+        if (userMessages.length === 1) {
+          conversation.title = message.content.substring(0, 20) + (message.content.length > 20 ? '...' : '')
+        }
       }
       
       this.saveConversation(conversation)

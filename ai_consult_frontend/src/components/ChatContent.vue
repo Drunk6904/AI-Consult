@@ -85,11 +85,23 @@ export default {
     sessionId: {
       immediate: true,
       handler(newSessionId) {
+        console.log('sessionId 变化:', newSessionId)
         if (newSessionId) {
           this.messages = []
           this.$nextTick(() => {
             this.loadSession(newSessionId)
           })
+        }
+      }
+    },
+    initialMessages: {
+      immediate: true,
+      handler(newMessages) {
+        console.log('initialMessages 变化:', newMessages)
+        if (newMessages && newMessages.length > 0) {
+          this.messages = [...newMessages]
+        } else {
+          this.messages = []
         }
       }
     }

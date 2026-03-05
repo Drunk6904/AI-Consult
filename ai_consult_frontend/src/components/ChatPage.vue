@@ -99,10 +99,14 @@ export default {
     loadConversation(sessionId) {
       const conversation = conversationService.getConversation(sessionId)
       this.currentConversation = conversation
+      console.log('加载会话:', sessionId, conversation)
     },
     handleConversationSelect(sessionId) {
+      console.log('切换会话:', sessionId)
       this.currentSessionId = sessionId
-      this.loadConversation(sessionId)
+      this.$nextTick(() => {
+        this.loadConversation(sessionId)
+      })
     },
     handleConversationDeleted(deletedId) {
       if (this.currentSessionId === deletedId) {
@@ -118,14 +122,8 @@ export default {
     },
     handleMessageReceived(message) {
       if (this.currentSessionId) {
-        const conversation = conversationService.getConversation(this.currentSessionId)
-        if (conversation) {
-          conversationService.updateConversationMessages(
-            this.currentSessionId, 
-            conversation.messages
-          )
-          this.loadConversation(this.currentSessionId)
-        }
+        conversationService.addMessageToConversation(this.currentSessionId, message)
+        this.loadConversation(this.currentSessionId)
       }
     },
     handleLoadSession(sessionId) {
