@@ -48,7 +48,8 @@ public class KnowledgeController {
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadFile(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic) {
 
         Map<String, Object> response = new HashMap<>();
 
@@ -93,10 +94,12 @@ public class KnowledgeController {
             // 上传到Dify知识库
             try {
                 log.info("Attempting to upload file to Dify: {}", fileName);
-                String documentId = difyService.uploadDocument(filePath.toFile(), fileName).block();
+                log.info("Target knowledge base: {}", isPublic ? "Public (30%)" : "Private (70%)");
+                String documentId = difyService.uploadDocument(filePath.toFile(), fileName, isPublic).block();
                 log.info("File uploaded to Dify successfully, document ID: {}", documentId);
                 response.put("difyDocumentId", documentId);
                 response.put("difyStatus", "success");
+                response.put("knowledgeBase", isPublic ? "public" : "private");
             } catch (Exception e) {
                 log.error("Failed to upload to Dify", e);
                 response.put("difyError", e.getMessage());
@@ -143,20 +146,24 @@ public class KnowledgeController {
     /**
      * 获取知识库文档列表
      * 
+     * @param isPublic 是否获取公开知识库
      * @return 文档列表
      */
     @GetMapping("/documents")
-    public ResponseEntity<Map<String, Object>> listDocuments() {
+    public ResponseEntity<Map<String, Object>> listDocuments(
+            @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic) {
         Map<String, Object> response = new HashMap<>();
 
         try {
             log.info("Attempting to get document list from Dify");
-            Map<String, Object> documents = difyService.listDocuments().block();
+            log.info("Target knowledge base: {}", isPublic ? "Public (30%)" : "Private (70%)");
+            Map<String, Object> documents = difyService.listDocuments(isPublic).block();
             log.info("Retrieved document list from Dify successfully");
             log.info("Dify response: " + documents);
 
             response.put("success", true);
             response.put("data", documents);
+            response.put("knowledgeBase", isPublic ? "public" : "private");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to get document list", e);

@@ -127,7 +127,7 @@ export default {
           },
           body: JSON.stringify({
             query: userMessage.content,
-            user: 'anonymous', // 后续可从登录状态获取
+            user: 'anonymous', // 未注册用户使用 anonymous
             session_id: this.sessionId
           })
         })
@@ -148,6 +148,16 @@ export default {
             confidence: chatData.confidence
           }
           this.messages.push(aiMessage)
+          
+          // 检查用户注册状态，如果是未注册用户，添加注册提示
+          if (chatData.is_registered === false) {
+            const registerPrompt = {
+              role: 'assistant',
+              content: '您当前使用的是访客模式，只能访问部分知识库。注册后可以访问完整的知识库内容，获得更全面的回答。',
+              sources: []
+            }
+            this.messages.push(registerPrompt)
+          }
         } else {
           throw new Error(data.message || 'API调用失败')
         }

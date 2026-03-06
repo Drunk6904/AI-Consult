@@ -138,9 +138,13 @@ export default {
         // 获取 Dify 的 conversation_id
         const difyConversationId = conversationService.getDifyConversationId(this.sessionId)
         
+        // 获取当前用户信息
+        const storedUser = localStorage.getItem('user')
+        const user = storedUser ? JSON.parse(storedUser) : null
+        
         const requestBody = {
           query: userMessage.content,
-          user: 'anonymous',
+          user: user ? user.username : 'anonymous',
           session_id: this.sessionId
         }
         
@@ -152,7 +156,9 @@ export default {
         const response = await fetch('/api/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            // 如果用户已登录，添加 token
+            ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
           },
           body: JSON.stringify(requestBody)
         })

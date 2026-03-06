@@ -20,19 +20,29 @@ import java.util.Map;
 public class DifyService {
     private final WebClient webClient;
     private final WebClient datasetWebClient;
-    private final String knowledgeBaseId;
+    private final WebClient webhookWebClient;
+    private final String publicKnowledgeBaseId; // 公开知识库（30%）
+    private final String privateKnowledgeBaseId; // 非公开知识库（70%）
     private final String baseUrl;
     private final String chatflowApiKey;
     private final String datasetApiKey;
+    private final String webhookUrl;
+    private final String webhookDebugUrl;
 
     public DifyService(
             @Value("${dify.api.url}") String apiUrl,
             @Value("${dify.chatflow.api.key}") String chatflowApiKey,
             @Value("${dify.dataset.api.key}") String datasetApiKey,
-            @Value("${dify.knowledge.base.id}") String knowledgeBaseId) {
-        this.knowledgeBaseId = knowledgeBaseId;
+            @Value("${dify.knowledge.base.id}") String knowledgeBaseId,
+            @Value("${dify.knowledge.private.base.id}") String privateKnowledgeBaseId,
+            @Value("${dify.webhook.url}") String webhookUrl,
+            @Value("${dify.webhook.debug.url}") String webhookDebugUrl) {
+        this.publicKnowledgeBaseId = knowledgeBaseId;
+        this.privateKnowledgeBaseId = privateKnowledgeBaseId;
         this.chatflowApiKey = chatflowApiKey;
         this.datasetApiKey = datasetApiKey;
+        this.webhookUrl = webhookUrl;
+        this.webhookDebugUrl = webhookDebugUrl;
         // 直接使用配置中提供的 URL
         this.baseUrl = apiUrl;
         this.webClient = WebClient.builder()
@@ -43,7 +53,13 @@ public class DifyService {
                 .baseUrl(this.baseUrl)
                 .defaultHeader("Authorization", "Bearer " + datasetApiKey)
                 .build();
+        this.webhookWebClient = WebClient.builder()
+                .build();
         System.out.println("DifyService initialized with base URL: " + this.baseUrl);
+        System.out.println("Public knowledge base ID: " + this.publicKnowledgeBaseId);
+        System.out.println("Private knowledge base ID: " + this.privateKnowledgeBaseId);
+        System.out.println("Webhook URL: " + this.webhookUrl);
+        System.out.println("Webhook Debug URL: " + this.webhookDebugUrl);
     }
 
     /**
@@ -51,13 +67,15 @@ public class DifyService {
      * 
      * @param file     文件
      * @param fileName 文件名
+     * @param isPublic 是否上传到公开知识库
      * @return 文档ID
      */
-    public Mono<String> uploadDocument(File file, String fileName) {
+    public Mono<String> uploadDocument(File file, String fileName, boolean isPublic) {
         System.out.println("=======================================");
         System.out.println("Uploading file to Dify: " + fileName);
         System.out.println("Dify API URL: " + baseUrl);
-        System.out.println("Knowledge base ID: " + knowledgeBaseId);
+        String targetKnowledgeBaseId = isPublic ? publicKnowledgeBaseId : privateKnowledgeBaseId;
+        System.out.println("Knowledge base ID: " + targetKnowledgeBaseId);
         System.out.println("File path: " + file.getAbsolutePath());
         System.out.println("File exists: " + file.exists());
         System.out.println("File size: " + file.length());
@@ -73,7 +91,7 @@ public class DifyService {
         multipartData.add("file", new FileSystemResource(file));
 
         return datasetWebClient.post()
-                .uri("/datasets/" + knowledgeBaseId + "/document/create-by-file")
+                .uri("/datasets/" + targetKnowledgeBaseId + "/document/create-by-file")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .retrieve()
@@ -98,6 +116,17 @@ public class DifyService {
                     Map<String, Object> document = (Map<String, Object>) response.get("document");
                     return (String) document.get("id");
                 });
+    }
+
+    /**
+     * 上传文档到Dify公开知识库（默认）
+     * 
+     * @param file     文件
+     * @param fileName 文件名
+     * @return 文档ID
+     */
+    public Mono<String> uploadDocument(File file, String fileName) {
+        return uploadDocument(file, fileName, true);
     }
 
     /**
@@ -161,11 +190,13 @@ public class DifyService {
      * 删除 Dify 知识库中的文档
      * 
      * @param documentId 文档 ID
+     * @param isPublic 是否从公开知识库删除
      * @return 是否成功
      */
-    public Mono<Boolean> deleteDocument(String documentId) {
+    public Mono<Boolean> deleteDocument(String documentId, boolean isPublic) {
+        String targetKnowledgeBaseId = isPublic ? publicKnowledgeBaseId : privateKnowledgeBaseId;
         return datasetWebClient.delete()
-                .uri("/datasets/" + knowledgeBaseId + "/documents/" + documentId)
+                .uri("/datasets/" + targetKnowledgeBaseId + "/documents/" + documentId)
                 .retrieve()
                 .onStatus(status -> !status.is2xxSuccessful(), response -> {
                     return response.bodyToMono(String.class)
@@ -178,13 +209,25 @@ public class DifyService {
     }
 
     /**
+     * 删除 Dify 公开知识库中的文档（默认）
+     * 
+     * @param documentId 文档 ID
+     * @return 是否成功
+     */
+    public Mono<Boolean> deleteDocument(String documentId) {
+        return deleteDocument(documentId, true);
+    }
+
+    /**
      * 列出 Dify 知识库中的文档
      * 
+     * @param isPublic 是否列出公开知识库
      * @return 文档列表
      */
-    public Mono<Map<String, Object>> listDocuments() {
+    public Mono<Map<String, Object>> listDocuments(boolean isPublic) {
+        String targetKnowledgeBaseId = isPublic ? publicKnowledgeBaseId : privateKnowledgeBaseId;
         return datasetWebClient.get()
-                .uri("/datasets/" + knowledgeBaseId + "/documents")
+                .uri("/datasets/" + targetKnowledgeBaseId + "/documents")
                 .retrieve()
                 .onStatus(status -> !status.is2xxSuccessful(), response -> {
                     return response.bodyToMono(String.class)
@@ -197,25 +240,36 @@ public class DifyService {
     }
 
     /**
-     * 调用 Dify Chatflow 进行问答
+     * 列出 Dify 公开知识库中的文档（默认）
      * 
-     * @param query  用户输入的问题
-     * @param userId 用户 ID
-     * @return 问答结果
+     * @return 文档列表
      */
-    public Mono<Map<String, Object>> chatflow(String query, String userId) {
-        return chatflow(query, userId, null);
+    public Mono<Map<String, Object>> listDocuments() {
+        return listDocuments(true);
     }
 
     /**
-     * 调用 Dify Chatflow 进行问答（带会话 ID）
+     * 调用 Dify Workflow 进行问答
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param isRegistered 用户是否已注册
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> workflow(String query, String userId, boolean isRegistered) {
+        return workflow(query, userId, null, isRegistered);
+    }
+
+    /**
+     * 调用 Dify Workflow 进行问答（带会话 ID）
      * 
      * @param query  用户输入的问题
      * @param userId 用户 ID
      * @param conversationId 会话 ID（用于维持对话上下文）
+     * @param isRegistered 用户是否已注册
      * @return 问答结果
      */
-    public Mono<Map<String, Object>> chatflow(String query, String userId, String conversationId) {
+    public Mono<Map<String, Object>> workflow(String query, String userId, String conversationId, boolean isRegistered) {
         Map<String, Object> request = new HashMap<>();
         request.put("query", query);
         request.put("inputs", new HashMap<>()); // 必须包含 inputs 字段
@@ -227,6 +281,13 @@ public class DifyService {
             request.put("conversation_id", conversationId);
         }
 
+        // 根据用户注册状态设置不同的参数，以便 Dify 工作流能够识别并访问相应的知识库
+        Map<String, Object> inputs = (Map<String, Object>) request.get("inputs");
+        inputs.put("is_registered", isRegistered);
+        // 传递知识库 ID 信息
+        inputs.put("public_knowledge_base_id", publicKnowledgeBaseId);
+        inputs.put("private_knowledge_base_id", privateKnowledgeBaseId);
+
         return webClient.post()
                 .uri("/chat-messages")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -235,11 +296,82 @@ public class DifyService {
                 .onStatus(status -> !status.is2xxSuccessful(), response -> {
                     return response.bodyToMono(String.class)
                             .flatMap(body -> {
-                                return Mono.error(new RuntimeException("Dify chatflow failed: " + body));
+                                return Mono.error(new RuntimeException("Dify workflow failed: " + body));
                             });
                 })
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
                 });
+    }
+
+    /**
+     * 调用 Dify Workflow 进行问答（默认，未注册用户）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> workflow(String query, String userId) {
+        return workflow(query, userId, false);
+    }
+
+    /**
+     * 调用 Dify Workflow 进行问答（带会话 ID，默认未注册用户）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param conversationId 会话 ID（用于维持对话上下文）
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> workflow(String query, String userId, String conversationId) {
+        return workflow(query, userId, conversationId, false);
+    }
+
+    /**
+     * 调用 Dify Chatflow 进行问答（默认，未注册用户）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> chatflow(String query, String userId) {
+        return workflow(query, userId, false);
+    }
+
+    /**
+     * 调用 Dify Chatflow 进行问答（带会话 ID，默认未注册用户）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param conversationId 会话 ID（用于维持对话上下文）
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> chatflow(String query, String userId, String conversationId) {
+        return workflow(query, userId, conversationId, false);
+    }
+
+    /**
+     * 调用 Dify Chatflow 进行问答
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param isRegistered 用户是否已注册
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> chatflow(String query, String userId, boolean isRegistered) {
+        return workflow(query, userId, isRegistered);
+    }
+
+    /**
+     * 调用 Dify Chatflow 进行问答（带会话 ID）
+     * 
+     * @param query  用户输入的问题
+     * @param userId 用户 ID
+     * @param conversationId 会话 ID（用于维持对话上下文）
+     * @param isRegistered 用户是否已注册
+     * @return 问答结果
+     */
+    public Mono<Map<String, Object>> chatflow(String query, String userId, String conversationId, boolean isRegistered) {
+        return workflow(query, userId, conversationId, isRegistered);
     }
 
     /**
@@ -268,5 +400,69 @@ public class DifyService {
                 })
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
                 });
+    }
+
+    /**
+     * 发送 Webhook 请求
+     * 
+     * @param payload Webhook  payload
+     * @param isDebug 是否使用调试 URL
+     * @return Webhook 响应
+     */
+    public Mono<Map<String, Object>> sendWebhook(Map<String, Object> payload, boolean isDebug) {
+        String targetUrl = isDebug ? webhookDebugUrl : webhookUrl;
+        System.out.println("Sending webhook to: " + targetUrl);
+        System.out.println("Webhook payload: " + payload);
+
+        return webhookWebClient.post()
+                .uri(targetUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(payload)
+                .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), response -> {
+                    return response.bodyToMono(String.class)
+                            .flatMap(body -> {
+                                return Mono.error(new RuntimeException("Webhook failed: " + body));
+                            });
+                })
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+                })
+                .doOnSuccess(response -> {
+                    System.out.println("Webhook sent successfully: " + response);
+                })
+                .doOnError(error -> {
+                    System.out.println("Webhook failed: " + error.getMessage());
+                });
+    }
+
+    /**
+     * 发送 Webhook 请求（默认使用生产 URL）
+     * 
+     * @param payload Webhook  payload
+     * @return Webhook 响应
+     */
+    public Mono<Map<String, Object>> sendWebhook(Map<String, Object> payload) {
+        return sendWebhook(payload, false);
+    }
+
+    /**
+     * 构建 Webhook  payload
+     * 
+     * @param query 用户查询
+     * @param answer AI 回答
+     * @param userId 用户 ID
+     * @param isRegistered 是否注册用户
+     * @param knowledgeBase 使用的知识库
+     * @return Webhook  payload
+     */
+    public Map<String, Object> buildWebhookPayload(String query, String answer, String userId, boolean isRegistered, String knowledgeBase) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("query", query);
+        payload.put("answer", answer);
+        payload.put("user_id", userId);
+        payload.put("is_registered", isRegistered);
+        payload.put("knowledge_base", knowledgeBase);
+        payload.put("timestamp", System.currentTimeMillis());
+        return payload;
     }
 }

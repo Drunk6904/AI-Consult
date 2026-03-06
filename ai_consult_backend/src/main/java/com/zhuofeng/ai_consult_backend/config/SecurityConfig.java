@@ -42,13 +42,14 @@ public class SecurityConfig {
                         // 公开接口
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/health/**").permitAll()
-                        // 需要认证的接口（临时放宽用于调试）
+                        // 聊天接口允许未注册用户访问
+                        .requestMatchers("/api/v1/chat/**").permitAll()
+                        // 需要认证的接口
                         .requestMatchers("/api/v1/roles/**").authenticated()
                         .requestMatchers("/api/v1/permissions/**").authenticated()
                         .requestMatchers("/api/v1/users/**").authenticated()
-                        // 知识库和聊天功能需要认证即可
+                        // 知识库接口需要认证
                         .requestMatchers("/api/v1/knowledge/**").authenticated()
-                        .requestMatchers("/api/v1/chat/**").authenticated()
                         // 其他接口需要认证
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

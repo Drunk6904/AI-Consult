@@ -16,6 +16,7 @@ const uploadProgress = ref(0)
 const isUploading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const selectedKnowledgeBase = ref(true) // true 表示公开知识库，false 表示私有知识库
 
 const allowedTypes = [
   'application/pdf',
@@ -58,6 +59,7 @@ const uploadFile = async () => {
 
   const formData = new FormData()
   formData.append('file', selectedFile.value)
+  formData.append('isPublic', selectedKnowledgeBase.value.toString())
 
   isUploading.value = true
   uploadProgress.value = 0
@@ -70,6 +72,7 @@ const uploadFile = async () => {
       body: formData,
       headers: {
         // 注意：不要设置Content-Type，让浏览器自动设置
+        ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
       }
     })
 
@@ -129,6 +132,22 @@ const clearFile = () => {
     <div v-if="selectedFile" class="file-info">
       <p>文件名: {{ selectedFile.name }}</p>
       <p>大小: {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+      
+      <!-- 知识库选择 -->
+      <div class="knowledge-base-selection">
+        <label>选择知识库:</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" v-model="selectedKnowledgeBase" :value="true" />
+            <span>公开知识库 (30%)</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" v-model="selectedKnowledgeBase" :value="false" />
+            <span>私有知识库 (70%)</span>
+          </label>
+        </div>
+      </div>
+      
       <button @click="clearFile" class="clear-btn">清除</button>
     </div>
 
@@ -217,6 +236,39 @@ h3 {
 .file-info p {
   margin: 5px 0;
   font-size: 14px;
+}
+
+/* 知识库选择样式 */
+.knowledge-base-selection {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f0f8ff;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.knowledge-base-selection label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  accent-color: #4CAF50;
 }
 
 .clear-btn {

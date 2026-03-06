@@ -5,6 +5,7 @@ import ChatWindow from './components/ChatWindow.vue'
 import ChatPage from './components/ChatPage.vue'
 import AuthComponent from './components/AuthComponent.vue'
 import KnowledgeBase from './components/KnowledgeBase.vue'
+import WebhookConfig from './components/WebhookConfig.vue'
 import RoleManagement from './views/RoleManagement.vue'
 import UserManagement from './views/UserManagement.vue'
 
@@ -148,6 +149,10 @@ onMounted(() => {
           @click="switchView('users')"
           v-if="userPermissions?.includes('user:manage')"
         >用户管理</button>
+        <button 
+          :class="['nav-tab', currentView === 'webhook' ? 'active' : '']"
+          @click="switchView('webhook')"
+        >Webhook 配置</button>
       </div>
     </section>
     
@@ -155,6 +160,7 @@ onMounted(() => {
     <div v-if="user && isAdmin" class="admin-content">
       <RoleManagement v-if="currentView === 'roles'" />
       <UserManagement v-if="currentView === 'users'" />
+      <WebhookConfig v-if="currentView === 'webhook'" />
     </div>
     
     <!-- 首页内容 -->
@@ -209,6 +215,8 @@ onMounted(() => {
       
       <!-- 聊天窗口（悬浮窗模式，带历史记录） -->
       <ChatPage v-if="user" />
+      <!-- 未注册用户的聊天窗口 -->
+      <ChatWindow v-else />
     </div>
   </div>
 </template>
