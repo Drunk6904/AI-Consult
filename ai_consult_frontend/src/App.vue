@@ -111,6 +111,11 @@ onMounted(() => {
   const storedUser = localStorage.getItem('user')
   if (storedUser) {
     user.value = JSON.parse(storedUser)
+    // 恢复用户角色
+    const storedRoles = localStorage.getItem('user_roles')
+    if (storedRoles) {
+      userRoles.value = JSON.parse(storedRoles)
+    }
     // 当用户登录后，获取文档列表
     fetchDocuments()
   }
