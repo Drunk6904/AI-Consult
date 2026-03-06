@@ -25,12 +25,16 @@ const showDocDetail = ref(false)
 const currentDoc = ref(null)
 const searchKeyword = ref('')
 const statusFilter = ref('all')
+const selectedKnowledgeBase = ref('public') // 'public' or 'private'
 
 const fetchDocuments = async () => {
   isLoading.value = true
   error.value = ''
   try {
-    const response = await axios.get('/api/v1/knowledge/documents')
+    const isPublic = selectedKnowledgeBase.value === 'public'
+    const response = await axios.get('/api/v1/knowledge/documents', {
+      params: { isPublic }
+    })
     if (response.data.success) {
       // 正确处理响应结构：response.data.data.data 包含文档数组
       documents.value = {
@@ -98,7 +102,10 @@ const deleteDocument = async () => {
   deleteSuccess.value = false
   
   try {
-    const response = await axios.delete(`/api/v1/knowledge/documents/${currentDocId.value}`)
+    const isPublic = selectedKnowledgeBase.value === 'public'
+    const response = await axios.delete(`/api/v1/knowledge/documents/${currentDocId.value}`, {
+      params: { isPublic }
+    })
     if (response.data.success) {
       deleteSuccess.value = true
       deleteMessage.value = '文档删除成功'
@@ -127,9 +134,11 @@ const batchDeleteDocuments = async () => {
   deleteSuccess.value = false
   
   try {
+    const isPublic = selectedKnowledgeBase.value === 'public'
     const response = await axios.delete('/api/v1/knowledge/documents/batch', {
       params: {
-        documentIds: selectedDocs.value
+        documentIds: selectedDocs.value,
+        isPublic
       }
     })
     if (response.data.success) {
@@ -220,6 +229,12 @@ onMounted(() => {
         </button>
       </div>
       <div class="filter-section">
+        <div class="knowledge-base-filter">
+          <select v-model="selectedKnowledgeBase" @change="fetchDocuments" class="filter-select">
+            <option value="public">公开知识库</option>
+            <option value="private">私有知识库</option>
+          </select>
+        </div>
         <div class="search-box">
           <input 
             type="text" 
@@ -315,6 +330,9 @@ onMounted(() => {
           </span>
           <span class="meta-item">
             状态: {{ doc.display_status || '未知' }}
+          </span>
+          <span class="meta-item">
+            知识库: {{ selectedKnowledgeBase === 'public' ? '公开' : '私有' }}
           </span>
         </div>
       </div>

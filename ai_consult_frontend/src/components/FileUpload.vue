@@ -11,7 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['upload-success', 'upload-error'])
 
 const fileInput = ref(null)
-const selectedFile = ref(null)
+const selectedFiles = ref([])
 const uploadProgress = ref(0)
 const isUploading = ref(false)
 const errorMessage = ref('')
@@ -29,37 +29,43 @@ const allowedTypes = [
 const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
 
 const handleFileChange = (event) => {
-  const file = event.target.files[0]
-  if (!file) return
+  const files = Array.from(event.target.files)
+  if (files.length === 0) return
 
-  // 验证文件类型
-  if (!allowedTypes.includes(file.type) && !allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
-    errorMessage.value = '只支持PDF、Word、Excel格式文件'
-    selectedFile.value = null
-    return
+  const validFiles = []
+  const errors = []
+
+  files.forEach(file => {
+    // 验证文件类型
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
+      errors.push(`${file.name}：只支持PDF、Word、Excel格式文件`)
+      return
+    }
+
+    // 验证文件大小
+    if (file.size > props.maxSize) {
+      errors.push(`${file.name}：文件大小不能超过 ${(props.maxSize / 1024 / 1024).toFixed(0)}MB`)
+      return
+    }
+
+    validFiles.push(file)
+  })
+
+  if (errors.length > 0) {
+    errorMessage.value = errors.join('\n')
+  } else {
+    errorMessage.value = ''
   }
 
-  // 验证文件大小
-  if (file.size > props.maxSize) {
-    errorMessage.value = `文件大小不能超过 ${(props.maxSize / 1024 / 1024).toFixed(0)}MB`
-    selectedFile.value = null
-    return
-  }
-
-  selectedFile.value = file
-  errorMessage.value = ''
+  selectedFiles.value = validFiles
   successMessage.value = ''
 }
 
 const uploadFile = async () => {
-  if (!selectedFile.value) {
+  if (selectedFiles.value.length === 0) {
     errorMessage.value = '请先选择文件'
     return
   }
-
-  const formData = new FormData()
-  formData.append('file', selectedFile.value)
-  formData.append('isPublic', selectedKnowledgeBase.value.toString())
 
   isUploading.value = true
   uploadProgress.value = 0
@@ -67,30 +73,40 @@ const uploadFile = async () => {
   successMessage.value = ''
 
   try {
-    const response = await fetch('/api/v1/knowledge/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // 注意：不要设置Content-Type，让浏览器自动设置
-        ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
-      }
-    })
+    for (let i = 0; i < selectedFiles.value.length; i++) {
+      const file = selectedFiles.value[i]
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('isPublic', selectedKnowledgeBase.value.toString())
 
-    if (!response.ok) {
-      throw new Error(`上传失败: ${response.status}`)
+      const response = await fetch('/api/v1/knowledge/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // 注意：不要设置Content-Type，让浏览器自动设置
+          ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`上传失败: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        emit('upload-success', result)
+        // 更新上传进度
+        uploadProgress.value = Math.round(((i + 1) / selectedFiles.value.length) * 100)
+      } else {
+        throw new Error(result.message || '上传失败')
+      }
     }
 
-    const result = await response.json()
-    if (result.success) {
-      successMessage.value = '文件上传成功'
-      emit('upload-success', result)
-      // 清空选择的文件
-      selectedFile.value = null
-      if (fileInput.value) {
-        fileInput.value.value = ''
-      }
-    } else {
-      throw new Error(result.message || '上传失败')
+    successMessage.value = `成功上传 ${selectedFiles.value.length} 个文件`
+    // 清空选择的文件
+    selectedFiles.value = []
+    if (fileInput.value) {
+      fileInput.value.value = ''
     }
   } catch (error) {
     errorMessage.value = `错误: ${error.message}`
@@ -102,11 +118,20 @@ const uploadFile = async () => {
 }
 
 const clearFile = () => {
-  selectedFile.value = null
+  selectedFiles.value = []
   errorMessage.value = ''
   successMessage.value = ''
   if (fileInput.value) {
     fileInput.value.value = ''
+  }
+}
+
+const removeFile = (index) => {
+  selectedFiles.value.splice(index, 1)
+  if (selectedFiles.value.length === 0) {
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
   }
 }
 </script>
@@ -122,16 +147,24 @@ const clearFile = () => {
         @change="handleFileChange"
         :disabled="isUploading"
         accept=".pdf,.doc,.docx,.xls,.xlsx"
+        multiple
         class="file-input"
       />
       <label class="file-label" :for="fileInput">
-        {{ selectedFile ? selectedFile.name : '选择文件' }}
+        {{ selectedFiles.length > 0 ? `已选择 ${selectedFiles.length} 个文件` : '选择文件' }}
       </label>
     </div>
 
-    <div v-if="selectedFile" class="file-info">
-      <p>文件名: {{ selectedFile.name }}</p>
-      <p>大小: {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+    <div v-if="selectedFiles.length > 0" class="file-info">
+      <div class="files-list">
+        <div v-for="(file, index) in selectedFiles" :key="index" class="file-item">
+          <div class="file-item-info">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</span>
+          </div>
+          <button @click="removeFile(index)" class="remove-file-btn" title="移除文件">×</button>
+        </div>
+      </div>
       
       <!-- 知识库选择 -->
       <div class="knowledge-base-selection">
@@ -148,16 +181,18 @@ const clearFile = () => {
         </div>
       </div>
       
-      <button @click="clearFile" class="clear-btn">清除</button>
+      <div class="file-actions">
+        <button @click="clearFile" class="clear-btn">清除所有文件</button>
+      </div>
     </div>
 
     <div class="upload-actions">
       <button
         @click="uploadFile"
-        :disabled="!selectedFile || isUploading"
+        :disabled="selectedFiles.length === 0 || isUploading"
         class="upload-btn"
       >
-        {{ isUploading ? '上传中...' : '上传文件' }}
+        {{ isUploading ? `上传中... (${uploadProgress}%)` : `上传 ${selectedFiles.length} 个文件` }}
       </button>
     </div>
 
@@ -169,7 +204,7 @@ const clearFile = () => {
     </div>
 
     <div v-if="errorMessage" class="message error">
-      {{ errorMessage }}
+      <pre>{{ errorMessage }}</pre>
     </div>
 
     <div v-if="successMessage" class="message success">
@@ -233,15 +268,65 @@ h3 {
   border-radius: 4px;
 }
 
-.file-info p {
-  margin: 5px 0;
+.files-list {
+  margin-bottom: 15px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: white;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.file-item-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-name {
   font-size: 14px;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.remove-file-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #ff5252;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.remove-file-btn:hover {
+  background-color: #ffebee;
 }
 
 /* 知识库选择样式 */
 .knowledge-base-selection {
   margin: 15px 0;
-  padding: 10px;
+  padding: 15px;
   background-color: #f0f8ff;
   border-radius: 4px;
   border: 1px solid #e0e0e0;
@@ -250,40 +335,121 @@ h3 {
 .knowledge-base-selection label {
   display: block;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   color: #333;
 }
 
 .radio-group {
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .radio-option {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   font-size: 14px;
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.radio-option:hover {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .radio-option input[type="radio"] {
   accent-color: #4CAF50;
 }
 
+.file-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .clear-btn {
   background-color: #f44336;
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
-  margin-top: 10px;
+  font-size: 14px;
+  transition: background-color 0.3s;
 }
 
 .clear-btn:hover {
   background-color: #d32f2f;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .file-upload {
+    padding: 15px;
+  }
+  
+  .file-input-container {
+    margin: 15px 0;
+  }
+  
+  .file-label {
+    padding: 20px;
+    font-size: 16px;
+  }
+  
+  .files-list {
+    max-height: 150px;
+  }
+  
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .file-item-info {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .file-name {
+    width: 100%;
+    white-space: normal;
+    word-break: break-all;
+  }
+  
+  .radio-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .radio-option {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .upload-actions {
+    margin: 15px 0;
+  }
+  
+  .upload-btn {
+    width: 100%;
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  .progress-container {
+    margin: 15px 0;
+  }
+  
+  .message {
+    margin-top: 10px;
+  }
 }
 
 .upload-actions {
@@ -354,5 +520,11 @@ h3 {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
+}
+
+.message pre {
+  margin: 0;
+  white-space: pre-wrap;
+  text-align: left;
 }
 </style>
