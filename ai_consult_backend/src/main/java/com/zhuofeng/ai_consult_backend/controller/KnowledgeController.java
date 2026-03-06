@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,10 +155,8 @@ public class KnowledgeController {
             log.info("Retrieved document list from Dify successfully");
             log.info("Dify response: " + documents);
 
-            // 提取 data 字段作为文档列表
-            Object data = documents != null ? documents.get("data") : new ArrayList<>();
             response.put("success", true);
-            response.put("data", data);
+            response.put("data", documents);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to get document list", e);
