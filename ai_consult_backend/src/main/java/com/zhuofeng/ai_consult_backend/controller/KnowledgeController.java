@@ -3,7 +3,9 @@ package com.zhuofeng.ai_consult_backend.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -169,6 +171,87 @@ public class KnowledgeController {
             log.error("Failed to get document list", e);
             response.put("success", false);
             response.put("message", "Failed to get document list: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * 删除知识库文档
+     * 
+     * @param documentId 文档ID
+     * @param isPublic   是否从公开知识库删除
+     * @return 删除结果
+     */
+    @DeleteMapping("/documents/{documentId}")
+    public ResponseEntity<Map<String, Object>> deleteDocument(
+            @PathVariable String documentId,
+            @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            log.info("Attempting to delete document from Dify: {}", documentId);
+            log.info("Target knowledge base: {}", isPublic ? "Public (30%)" : "Private (70%)");
+            boolean result = difyService.deleteDocument(documentId, isPublic).block();
+            log.info("Document deleted from Dify successfully: {}", result);
+
+            response.put("success", result);
+            response.put("message", "Document deleted successfully");
+            response.put("knowledgeBase", isPublic ? "public" : "private");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to delete document", e);
+            response.put("success", false);
+            response.put("message", "Failed to delete document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * 批量删除知识库文档
+     * 
+     * @param documentIds 文档ID列表
+     * @param isPublic    是否从公开知识库删除
+     * @return 删除结果
+     */
+    @DeleteMapping("/documents/batch")
+    public ResponseEntity<Map<String, Object>> batchDeleteDocuments(
+            @RequestParam("documentIds") List<String> documentIds,
+            @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            log.info("Attempting to batch delete documents from Dify: {}", documentIds);
+            log.info("Target knowledge base: {}", isPublic ? "Public (30%)" : "Private (70%)");
+
+            List<String> deletedIds = new ArrayList<>();
+            List<String> failedIds = new ArrayList<>();
+
+            for (String documentId : documentIds) {
+                try {
+                    boolean result = difyService.deleteDocument(documentId, isPublic).block();
+                    if (result) {
+                        deletedIds.add(documentId);
+                    } else {
+                        failedIds.add(documentId);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to delete document: {}", documentId, e);
+                    failedIds.add(documentId);
+                }
+            }
+
+            log.info("Batch delete completed: {} deleted, {} failed", deletedIds.size(), failedIds.size());
+
+            response.put("success", true);
+            response.put("message", "Batch delete completed");
+            response.put("deletedIds", deletedIds);
+            response.put("failedIds", failedIds);
+            response.put("knowledgeBase", isPublic ? "public" : "private");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to batch delete documents", e);
+            response.put("success", false);
+            response.put("message", "Failed to batch delete documents: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
