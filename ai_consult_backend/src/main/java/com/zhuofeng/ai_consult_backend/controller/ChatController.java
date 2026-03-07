@@ -61,9 +61,9 @@ public class ChatController {
             // 如果提供了有效的会话 ID，则使用带会话 ID 的 workflow 方法
             Map<String, Object> workflowResponse;
             if (difyConversationId != null && !difyConversationId.isEmpty()) {
-                workflowResponse = difyService.workflow(query, userId, difyConversationId, isRegistered).block();
+                workflowResponse = difyService.workflow(query, userId, difyConversationId, isRegistered, sessionId).block();
             } else {
-                workflowResponse = difyService.workflow(query, userId, isRegistered).block();
+                workflowResponse = difyService.workflow(query, userId, isRegistered, sessionId).block();
             }
             
             log.info("Workflow response received: {}", workflowResponse);

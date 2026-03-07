@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/health/**").permitAll()
                         // 聊天接口允许未注册用户访问
                         .requestMatchers("/api/v1/chat/**").permitAll()
+                        // 工作流接口允许未注册用户访问
+                        .requestMatchers("/api/v1/workflow/**").permitAll()
                         // 需要认证的接口
                         .requestMatchers("/api/v1/roles/**").authenticated()
                         .requestMatchers("/api/v1/permissions/**").authenticated()
