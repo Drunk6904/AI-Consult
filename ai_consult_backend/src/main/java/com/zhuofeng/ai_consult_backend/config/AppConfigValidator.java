@@ -43,8 +43,18 @@ public class AppConfigValidator implements CommandLineRunner {
     @Value("${jwt.expiration.time:7200000}")
     private long jwtExpirationTime;
 
+    @Value("${dify.streaming.enabled:enabled}")
+    private String streamingEnabled;
+
+    @Value("${dify.streaming.timeout:30}")
+    private int streamingTimeout;
+
+    @Value("${dify.streaming.retry.max:3}")
+    private int streamingRetryMax;
+
     private static final int MIN_JWT_KEY_LENGTH = 32;
-    private static final String[] VALID_WORKFLOW_TYPES = {"workflow", "chatflow"};
+    private static final String[] VALID_WORKFLOW_TYPES = { "workflow", "chatflow" };
+    private static final String[] VALID_STREAMING_VALUES = { "enabled", "disabled" };
 
     @Override
     public void run(String... args) {
@@ -102,9 +112,8 @@ public class AppConfigValidator implements CommandLineRunner {
             workflowType = "workflow";
         } else if (!isValidWorkflowType(workflowType)) {
             errors.add(String.format(
-                "FEATURE_FLAG_WORKFLOW_TYPE 设置无效: '%s'。有效值为: workflow, chatflow",
-                workflowType
-            ));
+                    "FEATURE_FLAG_WORKFLOW_TYPE 设置无效: '%s'。有效值为: workflow, chatflow",
+                    workflowType));
         } else {
             System.out.println("✓ FEATURE_FLAG_WORKFLOW_TYPE: " + workflowType);
         }
@@ -114,11 +123,10 @@ public class AppConfigValidator implements CommandLineRunner {
             errors.add("JWT_SECRET_KEY 未设置。请在 .env 文件中设置 JWT 签名密钥");
         } else if (jwtSecretKey.length() < MIN_JWT_KEY_LENGTH) {
             errors.add(String.format(
-                "JWT_SECRET_KEY 长度不足。当前长度: %d，要求至少 %d 个字符。" +
-                "请使用更长的密钥，建议使用随机生成的复杂字符串（如: openssl rand -base64 32）",
-                jwtSecretKey.length(),
-                MIN_JWT_KEY_LENGTH
-            ));
+                    "JWT_SECRET_KEY 长度不足。当前长度: %d，要求至少 %d 个字符。" +
+                            "请使用更长的密钥，建议使用随机生成的复杂字符串（如: openssl rand -base64 32）",
+                    jwtSecretKey.length(),
+                    MIN_JWT_KEY_LENGTH));
         } else {
             System.out.println("✓ JWT_SECRET_KEY: 长度=" + jwtSecretKey.length() + "（符合要求）");
         }
@@ -128,6 +136,35 @@ public class AppConfigValidator implements CommandLineRunner {
             warnings.add("JWT_EXPIRATION_TIME 设置无效，使用默认值: 7200000ms（2小时）");
         } else {
             System.out.println("✓ JWT_EXPIRATION_TIME: " + jwtExpirationTime + "ms");
+        }
+
+        // 验证流式输出配置
+        if (isBlank(streamingEnabled)) {
+            warnings.add("DIFY_STREAMING_ENABLED 未设置，使用默认值: enabled");
+            streamingEnabled = "enabled";
+        } else if (!isValidStreamingValue(streamingEnabled)) {
+            warnings.add(String.format(
+                    "DIFY_STREAMING_ENABLED 设置无效: '%s'。有效值为: enabled, disabled。使用默认值: enabled",
+                    streamingEnabled));
+            streamingEnabled = "enabled";
+        } else {
+            System.out.println("✓ DIFY_STREAMING_ENABLED: " + streamingEnabled);
+        }
+
+        // 验证流式超时时间
+        if (streamingTimeout <= 0) {
+            warnings.add("DIFY_STREAMING_TIMEOUT 设置无效: " + streamingTimeout + "，使用默认值: 30秒");
+            streamingTimeout = 30;
+        } else {
+            System.out.println("✓ DIFY_STREAMING_TIMEOUT: " + streamingTimeout + "秒");
+        }
+
+        // 验证流式重试次数
+        if (streamingRetryMax < 0) {
+            warnings.add("DIFY_STREAMING_RETRY_MAX 设置无效: " + streamingRetryMax + "，使用默认值: 3次");
+            streamingRetryMax = 3;
+        } else {
+            System.out.println("✓ DIFY_STREAMING_RETRY_MAX: " + streamingRetryMax + "次");
         }
 
         // 输出警告信息
@@ -169,6 +206,18 @@ public class AppConfigValidator implements CommandLineRunner {
     private boolean isValidWorkflowType(String type) {
         for (String validType : VALID_WORKFLOW_TYPES) {
             if (validType.equalsIgnoreCase(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 验证 streamingEnabled 值是否有效
+     */
+    private boolean isValidStreamingValue(String value) {
+        for (String validValue : VALID_STREAMING_VALUES) {
+            if (validValue.equalsIgnoreCase(value)) {
                 return true;
             }
         }

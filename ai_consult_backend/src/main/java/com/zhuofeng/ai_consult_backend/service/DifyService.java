@@ -1,5 +1,7 @@
 package com.zhuofeng.ai_consult_backend.service;
 
+import com.zhuofeng.ai_consult_backend.config.StreamingConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
@@ -8,14 +10,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PostConstruct;
 import java.io.File;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class DifyService {
@@ -29,12 +36,19 @@ public class DifyService {
     private final String datasetApiKey;
     private final String webhookUrl;
     private final String webhookDebugUrl;
-    
+
     @Value("${dify.feature.workflow.type:workflow}")
     private String workflowType;
-    
+
     private static final String WORKFLOW_TYPE = "workflow";
     private static final String CHATFLOW_TYPE = "chatflow";
+
+    @Autowired
+    private StreamingConfig streamingConfig;
+    @Autowired
+    private StreamingEventLogger streamingEventLogger;
+    @Autowired
+    private StreamingErrorHandler streamingErrorHandler;
 
     public DifyService(
             @Value("${dify.api.url}") String apiUrl,
@@ -68,7 +82,7 @@ public class DifyService {
         System.out.println("Webhook URL: " + this.webhookUrl);
         System.out.println("Webhook Debug URL: " + this.webhookDebugUrl);
     }
-    
+
     @PostConstruct
     public void validateWorkflowType() {
         // 验证并规范化 workflowType
@@ -79,11 +93,9 @@ public class DifyService {
             workflowType = workflowType.trim().toLowerCase();
             if (!WORKFLOW_TYPE.equals(workflowType) && !CHATFLOW_TYPE.equals(workflowType)) {
                 throw new IllegalStateException(
-                    String.format(
-                        "FEATURE_FLAG_WORKFLOW_TYPE 配置无效: '%s'。有效值为: '%s' 或 '%s'",
-                        workflowType, WORKFLOW_TYPE, CHATFLOW_TYPE
-                    )
-                );
+                        String.format(
+                                "FEATURE_FLAG_WORKFLOW_TYPE 配置无效: '%s'。有效值为: '%s' 或 '%s'",
+                                workflowType, WORKFLOW_TYPE, CHATFLOW_TYPE));
             }
             System.out.println("✓ FEATURE_FLAG_WORKFLOW_TYPE: " + workflowType);
         }
@@ -102,7 +114,7 @@ public class DifyService {
      */
     public Mono<Map<String, Object>> executeChat(String query, String userId, String conversationId,
             boolean isRegistered, String sessionId) {
-        
+
         // 根据配置选择调用方式
         if (CHATFLOW_TYPE.equals(workflowType)) {
             System.out.println("使用 Chatflow 模式处理请求");
@@ -112,7 +124,7 @@ public class DifyService {
             return executeWorkflow(query, userId, conversationId, isRegistered, sessionId);
         }
     }
-    
+
     /**
      * 执行 Workflow 模式聊天
      */
@@ -174,7 +186,7 @@ public class DifyService {
                     System.out.println("=======================================");
                 });
     }
-    
+
     /**
      * 执行 Chatflow 模式聊天
      */
@@ -603,12 +615,208 @@ public class DifyService {
         payload.put("timestamp", System.currentTimeMillis());
         return payload;
     }
-    
+
     /**
      * 获取当前工作流类型
+     * 
      * @return workflow 或 chatflow
      */
     public String getWorkflowType() {
         return workflowType;
+    }
+
+    /**
+     * 统一的流式聊天执行入口
+     * 根据 FEATURE_FLAG_WORKFLOW_TYPE 配置自动路由到 workflow 或 chatflow
+     * 
+     * @param query          用户输入的问题
+     * @param userId         用户 ID
+     * @param conversationId 会话 ID（用于维持对话上下文）
+     * @param isRegistered   用户是否已注册
+     * @param sessionId      会话 ID（用于工作流回调）
+     * @return 流式问答结果 (Flux SSE 事件)
+     */
+    public Flux<Map<String, Object>> executeChatStreaming(String query, String userId, String conversationId,
+            boolean isRegistered, String sessionId) {
+
+        // 检查流式输出是否启用
+        if (!streamingConfig.isStreamingEnabled()) {
+            System.out.println("流式输出已禁用，回退到阻塞模式");
+            return executeChat(query, userId, conversationId, isRegistered, sessionId)
+                    .flatMapMany(response -> {
+                        Map<String, Object> event = new HashMap<>();
+                        event.put("event", "message");
+                        event.put("message_id", response.get("message_id"));
+                        event.put("conversation_id", response.get("conversation_id"));
+                        event.put("answer", response.get("answer"));
+                        event.put("sequence", 0);
+                        event.put("is_end", true);
+                        return Flux.just(event);
+                    });
+        }
+
+        // 根据配置选择调用方式
+        if (CHATFLOW_TYPE.equals(workflowType)) {
+            System.out.println("使用 Chatflow 流式模式处理请求");
+            return executeChatflowStreaming(query, userId, conversationId, isRegistered, sessionId);
+        } else {
+            System.out.println("Workflow 模式不支持流式输出，回退到阻塞模式");
+            return executeChat(query, userId, conversationId, isRegistered, sessionId)
+                    .flatMapMany(response -> {
+                        Map<String, Object> event = new HashMap<>();
+                        event.put("event", "message");
+                        event.put("message_id", response.get("message_id"));
+                        event.put("conversation_id", response.get("conversation_id"));
+                        event.put("answer", response.get("answer"));
+                        event.put("sequence", 0);
+                        event.put("is_end", true);
+                        return Flux.just(event);
+                    });
+        }
+    }
+
+    /**
+     * 执行 Chatflow 流式模式聊天
+     */
+    private Flux<Map<String, Object>> executeChatflowStreaming(String query, String userId, String conversationId,
+            boolean isRegistered, String sessionId) {
+
+        Map<String, Object> request = createStreamingRequest(query, userId, conversationId, isRegistered, sessionId);
+        Instant startTime = Instant.now();
+        String requestId = userId + "_" + startTime.toEpochMilli();
+
+        System.out.println("=======================================");
+        System.out.println("Sending streaming chatflow request to: " + baseUrl + "/chat/completions");
+        System.out.println("Request data: " + request);
+
+        AtomicLong sequenceCounter = new AtomicLong(0);
+        AtomicReference<String> messageIdRef = new AtomicReference<>();
+        AtomicReference<String> conversationIdRef = new AtomicReference<>();
+
+        return webClient.post()
+                .uri("/chat/completions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), response -> {
+                    return response.bodyToMono(String.class)
+                            .flatMap(body -> {
+                                System.out.println("Streaming chatflow error response: " + body);
+                                streamingEventLogger.logError(requestId, userId, "HTTP_ERROR", body);
+                                return Mono.error(new RuntimeException("Dify streaming chatflow failed: " + body));
+                            });
+                })
+                .bodyToFlux(String.class)
+                .doOnSubscribe(subscription -> {
+                    streamingEventLogger.logConnectionEstablished(requestId, userId);
+                })
+                .flatMap(sseEvent -> {
+                    try {
+                        // 解析 SSE 事件
+                        Map<String, Object> eventData = parseSseEvent(sseEvent);
+                        if (eventData == null) {
+                            return Flux.empty();
+                        }
+
+                        // 提取并保存 message_id 和 conversation_id
+                        if (eventData.containsKey("message_id") && messageIdRef.get() == null) {
+                            messageIdRef.set((String) eventData.get("message_id"));
+                        }
+                        if (eventData.containsKey("conversation_id") && conversationIdRef.get() == null) {
+                            conversationIdRef.set((String) eventData.get("conversation_id"));
+                        }
+
+                        // 添加序列号
+                        long sequence = sequenceCounter.getAndIncrement();
+                        eventData.put("sequence", sequence);
+
+                        // 检查是否是结束事件
+                        String event = (String) eventData.get("event");
+                        boolean isEnd = "message_end".equals(event) || "error".equals(event);
+                        eventData.put("is_end", isEnd);
+
+                        // 记录数据传输
+                        String answer = (String) eventData.getOrDefault("answer", "");
+                        streamingEventLogger.logDataTransmitted(requestId, userId, sequence, answer.length());
+
+                        if (isEnd) {
+                            long timeToFirstByte = Duration.between(startTime, Instant.now()).toMillis();
+                            streamingEventLogger.logPerformanceMetrics(requestId, userId, timeToFirstByte,
+                                    timeToFirstByte);
+                        }
+
+                        return Flux.just(eventData);
+                    } catch (Exception e) {
+                        System.out.println("Error parsing SSE event: " + e.getMessage());
+                        streamingEventLogger.logError(requestId, userId, "PARSE_ERROR", e.getMessage());
+                        return Flux.error(e);
+                    }
+                })
+                .timeout(Duration.ofSeconds(streamingConfig.getStreamingTimeout()))
+                .onErrorResume(error -> {
+                    System.out.println("Streaming error occurred: " + error.getMessage());
+                    streamingEventLogger.logError(requestId, userId, "STREAM_ERROR", error.getMessage());
+                    return streamingErrorHandler.handleError(error, requestId);
+                })
+                .doOnComplete(() -> {
+                    long totalDuration = Duration.between(startTime, Instant.now()).toMillis();
+                    long totalEvents = sequenceCounter.get();
+                    streamingEventLogger.logPerformanceMetrics(requestId, userId, totalDuration, totalDuration);
+                    System.out.println("Streaming completed. Total events: " + totalEvents + ", Duration: "
+                            + totalDuration + "ms");
+                    System.out.println("=======================================");
+                });
+    }
+
+    /**
+     * 创建流式请求体
+     */
+    private Map<String, Object> createStreamingRequest(String query, String userId, String conversationId,
+            boolean isRegistered, String sessionId) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("query", query);
+        request.put("inputs", new HashMap<>());
+        request.put("user", userId);
+        request.put("response_mode", "streaming");
+
+        // 如果提供了会话 ID，则传递给 Dify
+        if (conversationId != null && !conversationId.isEmpty()) {
+            request.put("conversation_id", conversationId);
+        }
+
+        // 设置 inputs
+        Map<String, Object> inputs = (Map<String, Object>) request.get("inputs");
+        inputs.put("is_registered", isRegistered);
+        inputs.put("public_knowledge_base_id", publicKnowledgeBaseId);
+        inputs.put("private_knowledge_base_id", privateKnowledgeBaseId);
+        if (sessionId != null && !sessionId.isEmpty()) {
+            inputs.put("session_id", sessionId);
+        }
+
+        return request;
+    }
+
+    /**
+     * 解析 SSE 事件
+     */
+    private Map<String, Object> parseSseEvent(String sseEvent) {
+        if (sseEvent == null || sseEvent.trim().isEmpty()) {
+            return null;
+        }
+
+        // SSE 事件格式: data: {...}
+        String dataPrefix = "data: ";
+        if (sseEvent.startsWith(dataPrefix)) {
+            String jsonData = sseEvent.substring(dataPrefix.length());
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.readValue(jsonData, Map.class);
+            } catch (Exception e) {
+                System.out.println("Failed to parse SSE data: " + jsonData);
+                return null;
+            }
+        }
+
+        return null;
     }
 }

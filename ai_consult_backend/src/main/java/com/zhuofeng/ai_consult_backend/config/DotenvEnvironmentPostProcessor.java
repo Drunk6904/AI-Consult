@@ -20,24 +20,27 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
 
     // 需要加载到系统属性的环境变量列表
     private static final Set<String> ENV_VARS = Set.of(
-        "DIFY_API_URL",
-        "DIFY_WORKFLOW_API_KEY",
-        "DIFY_CHATFLOW_API_KEY",
-        "DIFY_DATASET_API_KEY",
-        "DIFY_KNOWLEDGE_BASE_ID",
-        "DIFY_KNOWLEDGE_PRIVATE_BASE_ID",
-        "DIFY_WORKFLOW_ID",
-        "DIFY_WEBHOOK_URL",
-        "DIFY_WEBHOOK_DEBUG_URL",
-        "FEATURE_FLAG_WORKFLOW_TYPE",
-        "JWT_SECRET_KEY",
-        "JWT_EXPIRATION_TIME",
-        "DB_URL",
-        "DB_DRIVER",
-        "DB_USERNAME",
-        "DB_PASSWORD",
-        "MAX_FILE_SIZE",
-        "MAX_REQUEST_SIZE"
+            "DIFY_API_URL",
+            "DIFY_WORKFLOW_API_KEY",
+            "DIFY_CHATFLOW_API_KEY",
+            "DIFY_DATASET_API_KEY",
+            "DIFY_KNOWLEDGE_BASE_ID",
+            "DIFY_KNOWLEDGE_PRIVATE_BASE_ID",
+            "DIFY_WORKFLOW_ID",
+            "DIFY_WEBHOOK_URL",
+            "DIFY_WEBHOOK_DEBUG_URL",
+            "DIFY_STREAMING_ENABLED",
+            "DIFY_STREAMING_TIMEOUT",
+            "DIFY_STREAMING_RETRY_MAX",
+            "FEATURE_FLAG_WORKFLOW_TYPE",
+            "JWT_SECRET_KEY",
+            "JWT_EXPIRATION_TIME",
+            "DB_URL",
+            "DB_DRIVER",
+            "DB_USERNAME",
+            "DB_PASSWORD",
+            "MAX_FILE_SIZE",
+            "MAX_REQUEST_SIZE"
     );
 
     @Override

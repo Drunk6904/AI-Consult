@@ -474,3 +474,136 @@ spring.jpa.hibernate.ddl-auto=update
 - ✅ 角色权限数据初始化成功
 - ✅ 应用启动无错误
 - ✅ 数据持久化验证通过
+
+---
+
+## 六、Dify Chatflow 流式输出配置
+
+**完成日期**: 2026-03-10  
+**分支**: feature/dify-chatflow-streaming  
+**状态**: ✅ 已完成
+
+### 6.1 功能概述
+实现 Dify Chatflow 的流式输出功能，使 AI 回答能够实时逐字显示，提升用户体验。同时配置必要的输入字段和相关的环境变量控制。
+
+### 6.2 环境变量配置
+
+新增以下环境变量到 `.env` 文件：
+
+```properties
+# 流式输出开关
+DIFY_STREAMING_ENABLED=enabled
+# 流式输出超时时间（秒）
+DIFY_STREAMING_TIMEOUT=30
+# 流式输出最大重试次数
+DIFY_STREAMING_RETRY_MAX=3
+```
+
+### 6.3 主要组件
+
+#### 6.3.1 StreamingConfig.java
+- 流式输出配置类
+- 支持配置：流式开关、超时时间、最大重试次数
+- 启动时验证配置有效性
+
+#### 6.3.2 StreamingEventLogger.java
+- 流式事件日志记录服务
+- 记录事件类型：
+  - 连接建立
+  - 数据传输
+  - 错误发生
+  - 超时触发
+  - 连接断开
+  - 性能指标（首字节时间、总时长）
+
+#### 6.3.3 StreamingErrorHandler.java
+- 流式错误处理服务
+- 实现指数退避重试机制
+- 基础延迟 1000ms，每次重试翻倍
+- 最大重试次数可配置
+
+### 6.4 接口更新
+
+#### 新增流式接口
+
+**Flux 版本**:
+```yaml
+POST /api/v1/chat/completions/stream
+Content-Type: application/json
+Accept: text/event-stream
+
+Request:
+{
+  "query": "用户问题",
+  "user": "user_id",
+  "session_id": "sess_001",
+  "conversation_id": "conv_001"
+}
+
+Response (SSE):
+event: message
+data: {"event": "message", "answer": "部分回答", "sequence": 0, "is_end": false}
+
+event: message
+data: {"event": "message", "answer": "完成", "sequence": 1, "is_end": true}
+```
+
+**SseEmitter 版本**:
+```yaml
+POST /api/v1/chat/completions/stream-emitter
+Content-Type: application/json
+
+Request/Response: 同上，使用 SseEmitter 实现更好的兼容性
+```
+
+#### 更新配置接口
+```yaml
+POST /api/v1/chat/config
+
+Response:
+{
+  "success": true,
+  "data": {
+    "workflow_type": "chatflow",
+    "supported_types": ["workflow", "chatflow"],
+    "streaming_enabled": true,
+    "streaming_timeout": 30,
+    "streaming_retry_max": 3
+  }
+}
+```
+
+### 6.5 技术要点
+
+1. **SSE 协议**: 使用 Server-Sent Events 实现流式数据传输
+2. **指数退避**: 错误重试采用指数退避策略，避免频繁重试
+3. **超时管理**: 可配置的超时时间，默认 30 秒
+4. **性能监控**: 记录首字节时间和总传输时长
+5. **错误处理**: 完善的错误处理和日志记录
+6. **向后兼容**: 非流式接口继续正常工作
+
+### 6.6 验证结果
+- ✅ 环境变量配置正确
+- ✅ 配置类加载和验证正常
+- ✅ 流式输出功能正常
+- ✅ SSE 协议支持正确
+- ✅ 错误处理和重试机制正常
+- ✅ 日志记录完整
+- ✅ 应用编译成功
+- ✅ 配置接口返回正确
+
+### 6.7 文件变更清单
+
+**新增文件**:
+- `StreamingConfig.java` - 流式配置类
+- `StreamingEventLogger.java` - 流式事件日志
+- `StreamingErrorHandler.java` - 流式错误处理
+
+**修改文件**:
+- `.env` - 添加流式配置环境变量
+- `.env.example` - 添加配置示例
+- `application.properties` - 添加流式配置属性
+- `DifyService.java` - 添加流式聊天方法
+- `ChatController.java` - 添加流式接口
+- `DotenvEnvironmentPostProcessor.java` - 添加环境变量加载
+- `AppConfigValidator.java` - 添加配置验证
