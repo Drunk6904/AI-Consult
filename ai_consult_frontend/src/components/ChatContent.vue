@@ -153,7 +153,18 @@ export default {
           requestBody.conversation_id = difyConversationId
         }
         
-        const response = await fetch('/api/v1/chat/completions', {
+        // 创建AI消息占位符（流式输出）
+        const aiMessage = {
+          role: 'assistant',
+          content: '',
+          sources: [],
+          timestamp: Date.now()
+        }
+        this.messages.push(aiMessage)
+        this.$emit('message-received', aiMessage)
+
+        // 使用流式API
+        const response = await fetch('/api/v1/chat/completions/stream', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -167,27 +178,40 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
 
-        const data = await response.json()
-        
-        if (data.success) {
-          const chatData = data.data
-          const aiMessage = {
-            role: 'assistant',
-            content: chatData.answer || chatData.message || '抱歉，我无法回答这个问题。',
-            sources: chatData.sources || [],
-            confidence: chatData.confidence,
-            timestamp: Date.now()
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let fullAnswer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            const trimmedLine = line.trim()
+            if (trimmedLine.startsWith('data: ')) {
+              const dataStr = trimmedLine.substring(6)
+              try {
+                const data = JSON.parse(dataStr)
+                if (data.event === 'message' && data.answer) {
+                  fullAnswer += data.answer
+                  aiMessage.content = fullAnswer
+                  this.scrollToBottom()
+                }
+                // 保存 Dify 返回的 conversation_id
+                if (data.conversation_id && data.conversation_id !== difyConversationId) {
+                  conversationService.setDifyConversationId(this.sessionId, data.conversation_id)
+                  console.log('保存 Dify conversation_id:', data.conversation_id)
+                }
+              } catch (e) {
+                console.error('解析 SSE 数据失败:', e)
+              }
+            }
           }
-          this.messages.push(aiMessage)
-          this.$emit('message-received', aiMessage)
-          
-          // 保存 Dify 返回的 conversation_id
-          if (chatData.conversationId && chatData.conversationId !== difyConversationId) {
-            conversationService.setDifyConversationId(this.sessionId, chatData.conversationId)
-            console.log('保存 Dify conversation_id:', chatData.conversationId)
-          }
-        } else {
-          throw new Error(data.message || 'API 调用失败')
         }
       } catch (error) {
         console.error('发送消息失败:', error)
