@@ -27,6 +27,7 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
             "DIFY_KNOWLEDGE_BASE_ID",
             "DIFY_KNOWLEDGE_PRIVATE_BASE_ID",
             "DIFY_WORKFLOW_ID",
+            "DIFY_CHATFLOW_ID",
             "DIFY_WEBHOOK_URL",
             "DIFY_WEBHOOK_DEBUG_URL",
             "DIFY_STREAMING_ENABLED",

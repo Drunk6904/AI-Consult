@@ -592,7 +592,24 @@ Response:
 - ✅ 应用编译成功
 - ✅ 配置接口返回正确
 
-### 6.7 文件变更清单
+### 6.7 问题修复记录
+
+#### 问题1: API 路径错误
+**问题描述**: 调用 Dify Chatflow API 返回 404 错误
+**原因**: DifyService 使用的是 `/chat/completions` 路径，但 Dify 实际 API 路径是 `/chat-messages`
+**解决方案**: 修改 DifyService.java 中的 API 路径
+- 阻塞模式: `/chat/completions` → `/chat-messages`
+- 流式模式: `/chat/completions` → `/chat-messages`
+
+#### 问题2: Dify 服务地址确认
+**问题描述**: 不确定 Dify 服务的实际运行地址
+**排查过程**:
+1. 检查 Docker 容器状态，确认 Dify 服务已启动
+2. 查看 Nginx 配置，确认 `/v1` 路径代理到 API 服务的 5001 端口
+3. 验证 API 路径格式，确认使用 `/chat-messages` 而非 `/chat/completions`
+**最终配置**: `DIFY_API_URL=http://localhost/v1`
+
+### 6.8 文件变更清单
 
 **新增文件**:
 - `StreamingConfig.java` - 流式配置类

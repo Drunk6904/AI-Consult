@@ -213,11 +213,11 @@ public class DifyService {
         }
 
         System.out.println("=======================================");
-        System.out.println("Sending chatflow request to: " + baseUrl + "/chat/completions");
+        System.out.println("Sending chatflow request to: " + baseUrl + "/chat-messages");
         System.out.println("Request data: " + request);
 
         return webClient.post()
-                .uri("/chat/completions")
+                .uri("/chat-messages")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
@@ -686,7 +686,7 @@ public class DifyService {
         String requestId = userId + "_" + startTime.toEpochMilli();
 
         System.out.println("=======================================");
-        System.out.println("Sending streaming chatflow request to: " + baseUrl + "/chat/completions");
+        System.out.println("Sending streaming chatflow request to: " + baseUrl + "/chat-messages");
         System.out.println("Request data: " + request);
 
         AtomicLong sequenceCounter = new AtomicLong(0);
@@ -694,7 +694,7 @@ public class DifyService {
         AtomicReference<String> conversationIdRef = new AtomicReference<>();
 
         return webClient.post()
-                .uri("/chat/completions")
+                .uri("/chat-messages")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
