@@ -1,6 +1,8 @@
 package com.zhuofeng.ai_consult_backend.service;
 
 import com.zhuofeng.ai_consult_backend.model.User;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -8,22 +10,58 @@ import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
-    private final String SECRET_KEY = "your-secret-key-change-in-production";
-    private final long EXPIRATION_TIME = 7200000; // 2 hours
+
+    @Value("${jwt.secret.key}")
+    private String secretKey;
+
+    @Value("${jwt.expiration.time:7200000}")
+    private long expirationTime;
+
+    private static final long DEFAULT_EXPIRATION_TIME = 7200000; // 2 hours
+    private static final int MIN_SECRET_KEY_LENGTH = 32;
+
+    @PostConstruct
+    public void validateConfig() {
+        // 验证 JWT 密钥是否设置
+        if (secretKey == null || secretKey.trim().isEmpty()) {
+            throw new IllegalStateException(
+                    "JWT 配置错误：jwt.secret.key 未设置。" +
+                            "请在 .env 文件中设置 JWT_SECRET_KEY 环境变量，" +
+                            "或使用命令：export JWT_SECRET_KEY=your-secret-key");
+        }
+
+        // 验证 JWT 密钥长度
+        if (secretKey.length() < MIN_SECRET_KEY_LENGTH) {
+            throw new IllegalStateException(
+                    String.format(
+                            "JWT 配置错误：jwt.secret.key 长度不足。当前长度：%d，要求至少 %d 个字符。" +
+                                    "请使用更长的密钥，建议使用随机生成的复杂字符串（如：openssl rand -base64 32）",
+                            secretKey.length(),
+                            MIN_SECRET_KEY_LENGTH));
+        }
+
+        // 验证过期时间
+        if (expirationTime <= 0) {
+            System.err.println("JWT 配置警告：jwt.expiration.time 设置无效，使用默认值 7200000ms（2小时）");
+            expirationTime = DEFAULT_EXPIRATION_TIME;
+        }
+
+        System.out.println("JWT 配置验证通过：密钥长度=" + secretKey.length() + "，过期时间=" + expirationTime + "ms");
+    }
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("sub", user.getUsername());
         claims.put("userId", user.getId());
         claims.put("iat", System.currentTimeMillis());
-        claims.put("exp", System.currentTimeMillis() + EXPIRATION_TIME);
-        
+        claims.put("exp", System.currentTimeMillis() + expirationTime);
+
         // 添加角色信息
         List<String> roles = user.getRoles().stream()
-            .map(role -> role.getRoleCode())
-            .collect(Collectors.toList());
+                .map(role -> role.getRoleCode())
+                .collect(Collectors.toList());
         claims.put("roles", roles);
-        
+
         // 添加权限信息
         Set<String> permissions = new HashSet<>();
         user.getRoles().forEach(role -> {
@@ -36,7 +74,7 @@ public class JwtService {
         // Base64 编码 JWT
         String header = Base64.getEncoder().encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes());
         String payload = Base64.getEncoder().encodeToString(claims.toString().getBytes());
-        String signature = Base64.getEncoder().encodeToString((header + "." + payload + "." + SECRET_KEY).getBytes());
+        String signature = Base64.getEncoder().encodeToString((header + "." + payload + "." + secretKey).getBytes());
 
         return header + "." + payload + "." + signature;
     }
@@ -46,12 +84,14 @@ public class JwtService {
             String[] parts = token.split("\\.");
             if (parts.length == 3) {
                 String payload = new String(Base64.getDecoder().decode(parts[1]));
-                // 解析 payload 字符串，格式类似：{sub=admin, userId=1, iat=1234567890, exp=1234567890, roles=[ADMIN], permissions=[...]}
+                // 解析 payload 字符串，格式类似：{sub=admin, userId=1, iat=1234567890, exp=1234567890,
+                // roles=[ADMIN], permissions=[...]}
                 int subStart = payload.indexOf("sub=");
                 if (subStart != -1) {
                     subStart += 4; // "sub=" 的长度
                     int subEnd = payload.indexOf(",", subStart);
-                    if (subEnd == -1) subEnd = payload.indexOf("}", subStart);
+                    if (subEnd == -1)
+                        subEnd = payload.indexOf("}", subStart);
                     if (subEnd != -1) {
                         return payload.substring(subStart, subEnd).trim();
                     }
@@ -125,7 +165,7 @@ public class JwtService {
         return new HashSet<>();
     }
 
-    public boolean validateToken(String token, String username) {
+public boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
         System.out.println("JWT 验证 - 提取的用户名：" + extractedUsername + ", 期望用户名：" + username);
         boolean expired = isTokenExpired(token);

@@ -7,8 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;import org.springframework.web.bind.annotation.RestController;
 
 import com.zhuofeng.ai_consult_backend.service.DifyService;
 
@@ -49,7 +48,7 @@ public class ChatController {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             boolean isRegistered = authentication != null && authentication.isAuthenticated() && 
                                   !(authentication.getPrincipal() instanceof String && "anonymousUser".equals(authentication.getPrincipal()));
-            log.info("User registration status: {}", isRegistered);
+            log.info("User registration status: {}, Workflow type: {}", isRegistered, difyService.getWorkflowType());
 
             // 只传递有效的 UUID 格式 conversation_id 给 Dify
             // 前端传递的 session_id 是自定义格式，不能直接传给 Dify
@@ -58,26 +57,24 @@ public class ChatController {
                 difyConversationId = conversationId;
             }
             
-            // 如果提供了有效的会话 ID，则使用带会话 ID 的 workflow 方法
-            Map<String, Object> workflowResponse;
-            if (difyConversationId != null && !difyConversationId.isEmpty()) {
-                workflowResponse = difyService.workflow(query, userId, difyConversationId, isRegistered, sessionId).block();
-            } else {
-                workflowResponse = difyService.workflow(query, userId, isRegistered, sessionId).block();
-            }
+            // 使用统一的 executeChat 方法，自动根据 FEATURE_FLAG_WORKFLOW_TYPE 路由
+            Map<String, Object> chatResponse = difyService.executeChat(
+                query, userId, difyConversationId, isRegistered, sessionId
+            ).block();
             
-            log.info("Workflow response received: {}", workflowResponse);
+            log.info("Chat response received: {}", chatResponse);
 
             // 构建标准响应格式
             Map<String, Object> data = new HashMap<>();
-            if (workflowResponse != null) {
-                // 从 Workflow 响应中提取信息
-                // Workflow 返回的数据结构：{answer: "...", conversation_id: "...", ...}
-                data.put("answer", workflowResponse.get("answer"));
-                data.put("conversationId", workflowResponse.get("conversation_id"));
-                data.put("messageId", workflowResponse.get("message_id"));
+            if (chatResponse != null) {
+                // 从响应中提取信息
+                // 返回的数据结构：{answer: "...", conversation_id: "...", ...}
+                data.put("answer", chatResponse.get("answer"));
+                data.put("conversationId", chatResponse.get("conversation_id"));
+                data.put("messageId", chatResponse.get("message_id"));
                 data.put("session_id", sessionId);
                 data.put("is_registered", isRegistered); // 返回用户注册状态
+                data.put("workflow_type", difyService.getWorkflowType()); // 返回当前使用的模式
             }
 
             response.put("success", true);
@@ -89,6 +86,30 @@ public class ChatController {
             log.error("Failed to process chat request", e);
             response.put("success", false);
             response.put("message", "Failed to process chat request: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * 获取当前工作流类型配置
+     */
+    @PostMapping("/config")
+    public ResponseEntity<Map<String, Object>> getConfig() {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put("workflow_type", difyService.getWorkflowType());
+            data.put("supported_types", new String[]{"workflow", "chatflow"});
+            
+            response.put("success", true);
+            response.put("data", data);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to get config", e);
+            response.put("success", false);
+            response.put("message", "Failed to get config: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
