@@ -624,3 +624,74 @@ Response:
 - `ChatController.java` - 添加流式接口
 - `DotenvEnvironmentPostProcessor.java` - 添加环境变量加载
 - `AppConfigValidator.java` - 添加配置验证
+- `ChatWindow.vue` - 实现前端流式输出显示
+
+---
+
+## 七、前端流式输出实现
+
+**完成日期**: 2026-03-10  
+**分支**: feature/frontend-streaming-output  
+**状态**: ✅ 已完成
+
+### 7.1 功能概述
+将前端聊天窗口从阻塞模式+轮询改为 SSE 流式输出，实现AI回答的实时逐字显示效果。
+
+### 7.2 主要修改
+
+#### ChatWindow.vue 变更
+
+**1. 修改 sendMessage 方法**
+- API端点: `/api/v1/chat/completions` → `/api/v1/chat/completions/stream`
+- 使用 `fetch` + `ReadableStream` 消费 SSE 流
+- 通过 `response.body.getReader()` 获取流读取器
+- 使用 `TextDecoder` 解码流数据
+- 解析 `data: ` 开头的 SSE 数据行
+- 实时累积 `answer` 字段到 AI 消息
+
+**2. 删除 pollForResult 方法**
+- 完全移除轮询获取结果的方法
+- 简化代码逻辑
+
+**3. 实现流式显示效果**
+- 发送消息时立即创建 AI 消息占位符
+- 实时更新消息内容到界面
+- 当 `is_end=true` 时结束流处理
+
+### 7.3 技术实现
+
+```javascript
+// SSE 流式消费核心代码
+const reader = response.body.getReader()
+const decoder = new TextDecoder()
+let buffer = ''
+
+while (true) {
+  const { done, value } = await reader.read()
+  if (done) break
+  
+  buffer += decoder.decode(value, { stream: true })
+  const lines = buffer.split('\n')
+  buffer = lines.pop() || ''
+  
+  for (const line of lines) {
+    if (line.trim().startsWith('data: ')) {
+      const data = JSON.parse(line.trim().substring(6))
+      if (data.event === 'message' && data.answer) {
+        aiMessage.content += data.answer
+        this.scrollToBottom()
+      }
+    }
+  }
+}
+```
+
+### 7.4 验证结果
+- ✅ 发送消息后能立即看到AI回复（流式）
+- ✅ 消息内容逐字显示，不是一次性显示
+- ✅ 多轮对话正常工作
+- ✅ 网络错误时有友好提示
+- ✅ 界面样式与之前保持一致
+
+### 7.5 文件变更
+- `ChatWindow.vue` - 实现前端流式输出

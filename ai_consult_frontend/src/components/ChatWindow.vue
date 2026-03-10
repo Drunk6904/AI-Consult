@@ -102,19 +102,27 @@ export default {
       this.inputMessage = ''
       this.scrollToBottom()
 
-      // 调用后端API
+      // 调用后端API（SSE流式输出）
       this.isLoading = true
       this.error = null
 
+      // 创建AI消息占位符
+      const aiMessage = {
+        role: 'assistant',
+        content: '',
+        sources: []
+      }
+      this.messages.push(aiMessage)
+
       try {
-        const response = await fetch('/api/v1/chat/completions', {
+        const response = await fetch('/api/v1/chat/completions/stream', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             query: userMessage.content,
-            user: 'anonymous', // 未注册用户使用 anonymous
+            user: 'anonymous',
             session_id: this.sessionId
           })
         })
@@ -123,102 +131,65 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
 
-        const data = await response.json()
-        
-        if (data.success) {
-          // 开始轮询获取工作流结果
-          this.pollForResult()
-        } else {
-          throw new Error(data.message || 'API调用失败')
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            const trimmedLine = line.trim()
+            if (trimmedLine.startsWith('data: ')) {
+              const dataStr = trimmedLine.substring(6)
+              try {
+                const data = JSON.parse(dataStr)
+                if (data.event === 'message' && data.answer) {
+                  aiMessage.content += data.answer
+                  this.scrollToBottom()
+                }
+                if (data.is_end) {
+                  this.isLoading = false
+                  this.scrollToBottom()
+                  return
+                }
+              } catch (e) {
+                console.warn('解析SSE数据失败:', e)
+              }
+            }
+          }
         }
+
+        // 处理剩余缓冲区
+        if (buffer.trim()) {
+          const trimmedLine = buffer.trim()
+          if (trimmedLine.startsWith('data: ')) {
+            const dataStr = trimmedLine.substring(6)
+            try {
+              const data = JSON.parse(dataStr)
+              if (data.event === 'message' && data.answer) {
+                aiMessage.content += data.answer
+              }
+            } catch (e) {
+              console.warn('解析SSE数据失败:', e)
+            }
+          }
+        }
+
+        this.isLoading = false
+        this.scrollToBottom()
       } catch (error) {
         console.error('发送消息失败:', error)
         this.error = error.message
-        // 添加错误提示消息
-        const errorMessage = {
-          role: 'assistant',
-          content: '抱歉，暂时无法处理您的请求，请稍后再试。',
-          sources: []
-        }
-        this.messages.push(errorMessage)
+        aiMessage.content = '抱歉，暂时无法处理您的请求，请稍后再试。'
         this.isLoading = false
         this.scrollToBottom()
       }
-    },
-    async pollForResult() {
-      let attempts = 0
-      const maxAttempts = 30 // 最多尝试30次
-      const interval = 1000 // 1秒间隔
-
-      const poll = async () => {
-        try {
-          const response = await fetch('/api/v1/workflow/result', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              session_id: this.sessionId
-            })
-          })
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-
-          const data = await response.json()
-          
-          if (data.status === 'success') {
-            // 处理工作流结果
-            const workflowData = data.data
-            const aiMessage = {
-              role: 'assistant',
-              content: workflowData.answer || workflowData.message || '抱歉，我无法回答这个问题。',
-              sources: [],
-              confidence: null
-            }
-            this.messages.push(aiMessage)
-            
-            // 检查用户注册状态，如果是未注册用户，添加注册提示
-            if (workflowData.is_registered === false) {
-              const registerPrompt = {
-                role: 'assistant',
-                content: '您当前使用的是访客模式，只能访问部分知识库。注册后可以访问完整的知识库内容，获得更全面的回答。',
-                sources: []
-              }
-              this.messages.push(registerPrompt)
-            }
-            this.isLoading = false
-            this.scrollToBottom()
-          } else if (data.status === 'pending' && attempts < maxAttempts) {
-            attempts++
-            setTimeout(poll, interval)
-          } else {
-            // 超时或其他错误
-            const errorMessage = {
-              role: 'assistant',
-              content: '抱歉，处理您的请求超时，请稍后再试。',
-              sources: []
-            }
-            this.messages.push(errorMessage)
-            this.isLoading = false
-            this.scrollToBottom()
-          }
-        } catch (error) {
-          console.error('轮询获取结果失败:', error)
-          const errorMessage = {
-            role: 'assistant',
-            content: '抱歉，获取结果失败，请稍后再试。',
-            sources: []
-          }
-          this.messages.push(errorMessage)
-          this.isLoading = false
-          this.scrollToBottom()
-        }
-      }
-
-      // 开始轮询
-      poll()
     },
     scrollToBottom() {
       setTimeout(() => {
