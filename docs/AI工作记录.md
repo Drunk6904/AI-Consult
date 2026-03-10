@@ -408,3 +408,69 @@ Response:
    - 提供符合规范的API接口
    - 确保响应格式符合要求
    - 支持会话管理和多轮对话
+
+---
+
+## 五、MVP-006 数据库迁移至 MySQL
+
+**完成日期**: 2026-03-10  
+**分支**: feature/mvp-006  
+**状态**: ✅ 已完成
+
+### 5.1 迁移背景
+将数据库从 H2 内存数据库迁移至 MySQL 持久化数据库，确保数据长期保存，支持生产环境部署。
+
+### 5.2 环境配置
+- **MySQL 版本**: 8.0+
+- **数据库名**: ai_consult
+- **字符集**: utf8mb4
+- **连接地址**: localhost:3306
+- **用户名/密码**: root/123456
+
+### 5.3 主要变更
+
+#### 依赖更新 (pom.xml)
+```xml
+<!-- MySQL 驱动依赖 -->
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+#### 配置文件更新
+
+**.env 文件**:
+```properties
+DB_URL=jdbc:mysql://localhost:3306/ai_consult?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+DB_DRIVER=com.mysql.cj.jdbc.Driver
+DB_USERNAME=root
+DB_PASSWORD=123456
+```
+
+**application.properties**:
+```properties
+spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/ai_consult?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+spring.datasource.driver-class-name=${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+spring.datasource.username=${DB_USERNAME:root}
+spring.datasource.password=${DB_PASSWORD:123456}
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+spring.jpa.hibernate.ddl-auto=update
+```
+
+### 5.4 数据库表结构
+成功创建的表：
+- `users` - 用户表
+- `roles` - 角色表
+- `permissions` - 权限表
+- `user_roles` - 用户角色关联表
+- `role_permissions` - 角色权限关联表
+
+### 5.5 验证结果
+- ✅ MySQL 服务运行正常
+- ✅ 数据库连接成功
+- ✅ 数据表自动创建
+- ✅ 角色权限数据初始化成功
+- ✅ 应用启动无错误
+- ✅ 数据持久化验证通过
